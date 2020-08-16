@@ -29,6 +29,6 @@ const user = (state = {info: null}, action) => {
     }
 }
 
-const store = createStore(combineReducers(modal, user))
+const store = createStore(combineReducers({modal, user}))
 
 export default store

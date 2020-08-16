@@ -3,7 +3,7 @@ import Amplify from 'aws-amplify'
 import { Provider } from 'react-redux'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import Login from './components/Login'
+import Login from './components/User_Login/Login'
 import store from './store/store'
 import logo from './logo.svg';
 import './App.css';
