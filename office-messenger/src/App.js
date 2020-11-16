@@ -1,15 +1,19 @@
 import React from 'react';
 import Amplify from 'aws-amplify'
 import { Provider } from 'react-redux'
+import Portal from './components/Portal'
+import PrivateRoute from './PrivateRoute'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import Login from './components/User_Login/Login'
+import Login from './components/User_Login/Login';
+import Modal from './components/Modal'
 import store from './store/store'
 import logo from './logo.svg';
 import './App.css';
 
 function App() {
 
+  //Configures amplify for app
   Amplify.configure({
     Auth: {
       region: 'eu-west-2',
@@ -18,6 +22,7 @@ function App() {
     }
   })
 
+  //THeme creation for app
   const theme = createMuiTheme({
     palette: {
       primary: {
@@ -34,14 +39,17 @@ function App() {
       },
   },
   })
-
+  
+  //Provider can allow global store to be passed through it which can be accessed by children within it, i.e. the entire webapp
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
     <div className="App">
+      <Modal />
       <Router>
         <Switch>
-          <Route path='/' component={Login} />
+          <Route path='/login' component={Login} />
+          <PrivateRoute path='/' component={Portal}/>
           </Switch>
         </Router>
     </div>

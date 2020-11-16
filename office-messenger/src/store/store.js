@@ -1,5 +1,7 @@
 import { createStore, combineReducers } from 'redux'
 
+//This is a reducer which can be called on dispatch
+//this reducer opens a modal/backdrop for a form or some sort of popup
 const modal = (state = {open: false, content: null}, action) => {
     switch(action.type){
         case 'OPEN_MODAL':
@@ -17,6 +19,7 @@ const modal = (state = {open: false, content: null}, action) => {
     }
 }
 
+//this reducer is updated when the user logs in, so once the application is entered user information can be accessed easily
 const user = (state = {info: null}, action) => {
     switch(action.type) {
         case 'USER_UPDATE':
@@ -29,6 +32,7 @@ const user = (state = {info: null}, action) => {
     }
 }
 
+//this is the "global store" from which the global state can be accessed and altered through dispatches
 const store = createStore(combineReducers({modal, user}))
 
 export default store
