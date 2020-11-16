@@ -18,11 +18,12 @@ import { TrendingUpRounded } from '@material-ui/icons';
 
 const Login = (props) => {
 
-//this is a set of react hooks which set states of the entered email, password, login panel and any errors
+//this is a set of react hooks which set states of the entered email, password, login panel, redirect flagging, and any errors
 const[email, setEmail] = useState('')
 const[password, setPassword] = useState('')
 const[panel, setPanel] = useState('login')
 const[error, setErrors] = useState('')
+const[redirect, setRedirect] = useState(false)
 
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/
 
@@ -50,14 +51,6 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
     }
   }
 
-  const loadUser = () => {
-    console.log('loading user')
-    return (
-      <div>
-    <Portal />
-    </div>
-    )
-  }
   //this is a similar function to the previous one, which will return specific JSX depending on the panel
   const getPanel = () => {
     switch(panel){
@@ -135,6 +128,7 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
             var user = await Auth.signIn(email, password)
             console.log('user', user)
             props.closeModal()
+            setRedirect(true)
             // let user_info = GET('user')
             // console.log('user', user_info)
           }
@@ -194,7 +188,10 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
   }
   //This is the initial dialog box that is returned which forms the main login page without panel specific information
     return(
-      <div>
+      redirect ? 
+      (<Redirect to='/' />)
+      :
+      (<div>
       {props.openModal(
         <Dialog open aria-labelledby="form-dialog-title">
         <DialogTitle id="form-dialog-title">{getTitle()}</DialogTitle>
@@ -214,7 +211,7 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
           </DialogContent>
       </Dialog>
       )}
-      </div>
+      </div>)
     )
 }
 
