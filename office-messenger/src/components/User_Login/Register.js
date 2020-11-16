@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Auth } from 'aws-amplify'
+import { POST } from '../../utilities/utils'
 import { Form } from 'mvp-webapp'
 import { withTheme } from '@material-ui/core'
 import { css, jsx } from '@emotion/core'
@@ -7,6 +8,7 @@ import { css, jsx } from '@emotion/core'
 
 const Register = (props) => {
     const[email, setEmail] = useState(null)
+    const[userDetails, setUserDetails] = useState(null)
     return(
             <Form 
             slides={[
@@ -35,6 +37,10 @@ const Register = (props) => {
                         }
                     ],
                     onSubmit: async (event) => {
+                        setUserDetails({
+                            email: event.email,
+                            display_name: event.user_display_name
+                        })
                         console.log('creating an account')
                         setEmail(event.email)
                         await Auth.signUp({
@@ -61,8 +67,14 @@ const Register = (props) => {
                         </div>,
                         onSubmit: async (event) => {
                             console.log('confirming and logging in')
-                            await Auth.confirmSignUp(event.email, event.verif_code)
-                            await Auth.signIn(event.email, event.password)
+                            try{
+                                await Auth.confirmSignUp(event.email, event.verif_code)
+                                await Auth.signIn(event.email, event.password)
+                                POST('user', userDetails)
+                            }
+                            catch(err){
+                                throw err;
+                            }
                             //props.post_signup_fn ? await props.post_signup_fn(event):null
                         }
                 }

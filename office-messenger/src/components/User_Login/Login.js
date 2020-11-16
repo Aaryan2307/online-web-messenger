@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import Dialog from '@material-ui/core/Dialog';
 import { Button, withTheme } from '@material-ui/core'
+import Portal from '../Portal'
+import { GET } from '../../utilities/utils'
 import { Auth } from 'aws-amplify'
+import { Form } from 'mvp-webapp'
 import { connect } from 'react-redux'
-import { Route, Switch, Link } from 'react-router-dom';
+import { Route, Switch, Link, Redirect} from 'react-router-dom';
 import Register from './Register'
 import Reset from './Reset'
 //import DialogActions from '@material-ui/core/DialogActions';
@@ -11,13 +14,19 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
+import { TrendingUpRounded } from '@material-ui/icons';
 
 const Login = (props) => {
 
+//this is a set of react hooks which set states of the entered email, password, login panel and any errors
 const[email, setEmail] = useState('')
 const[password, setPassword] = useState('')
 const[panel, setPanel] = useState('login')
+const[error, setErrors] = useState('')
 
+const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/
+
+  //this is a list of objects(dictionaries) which each panel points to in order to display specific information
   const loginActions = [
     {
       name: 'Forgot Password',
@@ -29,6 +38,7 @@ const[panel, setPanel] = useState('login')
     }
   ]
 
+  //A function which returns the correct title depending on the login panek display
   const getTitle = () => {
     switch(panel){
       case 'login':
@@ -40,6 +50,15 @@ const[panel, setPanel] = useState('login')
     }
   }
 
+  const loadUser = () => {
+    console.log('loading user')
+    return (
+      <div>
+    <Portal />
+    </div>
+    )
+  }
+  //this is a similar function to the previous one, which will return specific JSX depending on the panel
   const getPanel = () => {
     switch(panel){
       case 'login':
@@ -71,7 +90,8 @@ const[panel, setPanel] = useState('login')
             }}
           />
           <Button onClick={handleLogin}>Log In</Button>
-          {loginActions.map((a) => {
+          {//Maps the login actions that are available for the panel in order
+          loginActions.map((a) => {
             return(
               <div style={{textDecoration: 'underline', cursor: 'pointer'}} onClick={a.onClick}>
                 {a.name}
@@ -92,36 +112,113 @@ const[panel, setPanel] = useState('login')
             <Register />
             </div>
           )
+        default:
+          return;
     }
   }
-
+  //This is the handler when the submit button is clicked when the user attemps to login.
+  // Specific errors that can be thrown from Cognito are also handled here
   const handleLogin = async (event) => {
-    switch(panel){
-      case 'login':
-        try{
-          var user = await Auth.signIn(email, password)
-        }
-        catch(err){
-          console.error(err)
-        }
+    if(!email || !password){
+      if(!error.includes('Please fill in your login details')){
+        setErrors(['Please fill in your login details'])
+      }
+    }
+    else if(!emailRegex.test(email)){
+      setErrors(['Please enter a vaild email address to log in with'])
+    }
+    else{
+      //How do we handle the submit a login request depending on the panel?
+      switch(panel){
+        case 'login':
+          try{
+            var user = await Auth.signIn(email, password)
+            console.log('user', user)
+            props.closeModal()
+            // let user_info = GET('user')
+            // console.log('user', user_info)
+          }
+          catch(err){
+            console.error(err)
+            /* --Types of errors:
+              -UserNotConfirmed
+              -UserNotFound
+              -PasswordResetRequired
+              -NotAuthorized
+              -
+            */
+           //These are all error handling cases
+            if(err.name === 'UserNotConfirmedException'){
+              alert('Please confirm your user account')
+              Auth.resendSignUp(email)
+              props.openModal(
+                <Form 
+                  slides={[
+                    {
+                      title: 'Verify Account',
+                      questions: [
+                        {
+                          title: 'Code',
+                          type: 'text',
+                          id: 'verif_code'
+                        }
+                      ],
+                      onSubmit: async (e) => {
+                        await Auth.confirmSignUp(email, e.verif_code)
+                        props.closeModal()
+                        return(
+                          <Redirect to='/' />
+                        )
+                      }
+                    }
+                  ]}
+                />
+              )
+            }
+            if(err.code === 'UserNotFoundException'){
+              setErrors('The login details you have entered are not correct')
+              throw err
+            }
+            if(err.code === 'NotAuthorizedException'){
+              setErrors('The login details you have entered are not correct')
+              throw err
+            }
+            else if(err.code === 'PasswordResetRequiredException'){
+              alert('password not reset properly')
+            }
+          }
+          default: 
+            return;
+      } 
     }
   }
+  //This is the initial dialog box that is returned which forms the main login page without panel specific information
     return(
-        <div>
+      <div>
+      {props.openModal(
         <Dialog open aria-labelledby="form-dialog-title">
         <DialogTitle id="form-dialog-title">{getTitle()}</DialogTitle>
           <DialogContent>
         {getPanel()}
-        {panel !== 'login' ? <div onClick={() => {setPanel('login')}}>
+        {panel !== 'login' ? <div onClick={() => {setPanel('login')}} style={{textDecoration: 'underline', cursor: 'pointer'}}>
           Back
           </div>
           : 
           null}
+          {
+            error ? 
+            <div className='errors' color='red'>*{error}</div>
+            :
+            null
+          }
           </DialogContent>
       </Dialog>
-            </div>
+      )}
+      </div>
     )
 }
+
+// mapDispatch and mapStateToProps are Redux functions that change props or dispatch functions in the global state. It can call a certain reducer according to type and dispatch actions through that
 
 const mapDispatchToProps = (dispatch) => {
   return {
@@ -135,7 +232,7 @@ const mapDispatchToProps = (dispatch) => {
         type: 'OPEN_MODAL',
         content
       })
-    }
+    },
   }
 }
 

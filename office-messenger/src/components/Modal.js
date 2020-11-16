@@ -4,7 +4,11 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
 
 const Modal = (props) => {
-    !props.content ? props.closeModal() : null
+    //If there is no content passed into the modal, close it as there is nothing to show
+    if(!props.content){
+        props.closeModal()
+    }
+    //Otherwise we can return this dialog box
     return(
         <Dialog open={props.open} aria-labelledby="form-dialog-title">
             <DialogContent>
@@ -13,7 +17,7 @@ const Modal = (props) => {
             </Dialog>
     )
 }
-
+//This will map to the global state
 const mapStateToProps = (state) => {
     return {
         open: state.modal.open,
@@ -25,7 +29,7 @@ const mapDispatchToProps = (dispatch) => {
     return{
         closeModal: () => {
             dispatch({
-                open: false
+                type: 'CLOSE_MODAL'
             })
         }
     }
