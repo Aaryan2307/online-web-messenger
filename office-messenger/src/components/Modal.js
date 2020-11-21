@@ -10,10 +10,8 @@ const Modal = (props) => {
     }
     //Otherwise we can return this dialog box
     return(
-        <Dialog open={props.open} aria-labelledby="form-dialog-title">
-            <DialogContent>
+        <Dialog open={props.open} aria-labelledby="form-dialog-title" onBackdropClick={props.closeModal}>
                 {props.content}
-                </DialogContent>
             </Dialog>
     )
 }
