@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { GET } from '../utilities/utils'
+import React, { useState, useEffect } from 'react'
+import { GET, } from '../utilities/utils'
 import { AppBar, Toolbar, IconButton, Avatar, Typography, Slide, withTheme, Button, Dialog, DialogTitle, DialogContent, TextField } from '@material-ui/core';
 import { css, jsx } from '@emotion/core'
 import MenuIcon from '@material-ui/icons/Menu';
@@ -41,14 +41,20 @@ const getStyle = (props) => {
 // margin-top: 64px;
 // `
 const Portal = (props) => {
+    //useStates are here to indicate whether we need to redirect
     const[redirect, setRedirect] = useState(false)
+    //actions is set to indicate the sidebar whether to be present or not
     const[actions, setActions] = useState(false)
-    // const fetchUser = async () => {
-    //     let user = await GET('user')
-    //     return user
-    // }
-    // let user_info = fetchUser()
-    // console.log('user info', user_info)
+    const fetchUser = async () => {
+        let user = await GET('user')
+        return user
+    }
+    useEffect(() => {
+        let user_info = fetchUser()
+        props.updateUser(user_info)
+    }, [])
+
+    //simple logout handler procedure which tries to log out the current user session, and redirecs to login page
     const logoutHandler = async () => {
         try{
             await Auth.signOut()
@@ -60,6 +66,8 @@ const Portal = (props) => {
         }
     }
 
+
+    //function that returns appropriate jsx to open a modal for a user to input their organisation code
     const joinOrg = () => {
         return(
             props.openModal(
@@ -75,12 +83,20 @@ const Portal = (props) => {
                         type="string"
                         fullWidth
                     />
-                    <Button variant='outlined'>Join</Button>
+                    <Button onClick={() => {props.closeModal()}} variant='outlined'>Join</Button>
                     </DialogContent>
                     </React.Fragment>
             )
         )
     }
+
+    //js objcet/dictionary of sidebar actions that can be mapped onto the sidebar as button, this is shown below
+    /* label: string
+       icon: JSX MUI Icon
+       to: string... pathname of redirect
+       onClick: function(any) 
+    */
+
     const workspace_actions = [
         {
             label: 'Create a Workspace',
@@ -101,6 +117,7 @@ const Portal = (props) => {
 
 
     return(
+        //ternery statement on whether to render jsx for the portal or redirect to login
         !redirect ? (
         <div>
             <AppBar>
@@ -108,6 +125,8 @@ const Portal = (props) => {
                 <Slide direction='right' in={actions}>
                     <div className='org_actions' css={getStyle(props)}>
                         {
+                            //mapping out workspace actions
+                            //if there it is a redirect then it will map out a "button link" else it will just fire the handler attached to it
                             workspace_actions.map((w) => {
                                 return(
                                     <div>
@@ -159,6 +178,12 @@ const mapDispatchToProps = (dispatch) => {
           content
         })
       },
+      updateUser: (user_info) => {
+          dispatch({
+              type: 'USER_UPDATE',
+              update: user_info,
+          })
+      }
     }
   }
 

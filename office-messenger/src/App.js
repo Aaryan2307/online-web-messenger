@@ -6,6 +6,7 @@ import PrivateRoute from './PrivateRoute'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import Login from './components/User_Login/Login';
+import Register from './components/User_Login/Register'
 import OrgCreator from './components/OrgCreator'
 import Modal from './components/Modal'
 import store from './store/store'
