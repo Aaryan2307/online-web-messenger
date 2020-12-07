@@ -5,6 +5,7 @@ import Portal from '../Portal'
 import { GET } from '../../utilities/utils'
 import { Auth } from 'aws-amplify'
 import { Form } from 'mvp-webapp'
+import { css, jsx } from '@emotion/core' 
 import { connect } from 'react-redux'
 import { Route, Switch, Link, Redirect} from 'react-router-dom';
 import Register from './Register'
@@ -14,7 +15,15 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
-import { TrendingUpRounded } from '@material-ui/icons';
+import CircularProgress from '@material-ui/core/CircularProgress';
+/** @jsxFrag React.Fragment */
+
+const errorStyle = css`
+  p {
+    color: red;
+  }
+
+`
 
 const Login = (props) => {
 
@@ -23,8 +32,10 @@ const[email, setEmail] = useState('')
 const[password, setPassword] = useState('')
 const[panel, setPanel] = useState('login')
 const[error, setErrors] = useState('')
+const[loading, setLoading] = useState(false)
 const[redirect, setRedirect] = useState(false)
 
+const showRegister = false
 const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/
 
   //this is a list of objects(dictionaries) which each panel points to in order to display specific information
@@ -39,7 +50,17 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
     }
   ]
 
-  //A function which returns the correct title depending on the login panek display
+
+  //Function that handles a keypress and decides what to do depending on the key, input is the event object, holding a "key" key
+  //Does not output anything rather calls the login function if enter key is pressed
+  const handleKeyPress = (e) => {
+    if(e.key === 'Enter'){
+      console.log('login through keypress')
+      handleLogin()
+    }
+  }
+
+  //A function which returns the correct title depending on the login panel display
   const getTitle = () => {
     switch(panel){
       case 'login':
@@ -70,6 +91,7 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
             onChange={(e) => {
               setEmail(e.target.value)
             }}
+            onKeyDown={handleKeyPress}
           />
           <TextField
             autoFocus
@@ -81,8 +103,12 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
             onChange={(e) => {
               setPassword(e.target.value)
             }}
+            onKeyDown={handleKeyPress}
           />
-          <Button onClick={handleLogin}>Log In</Button>
+          <div>
+          <Button onClick={handleLogin} disabled={loading}>Log In</Button>
+          {loading ? <CircularProgress size={22} /> : null}
+          </div>
           {//Maps the login actions that are available for the panel in order
           loginActions.map((a) => {
             return(
@@ -112,6 +138,10 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
   //This is the handler when the submit button is clicked when the user attemps to login.
   // Specific errors that can be thrown from Cognito are also handled here
   const handleLogin = async (event) => {
+    setLoading(true)
+    setTimeout(() => {
+      setLoading(false)
+    }, 3000)
     if(!email || !password){
       if(!error.includes('Please fill in your login details')){
         setErrors(['Please fill in your login details'])
@@ -189,9 +219,12 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
   //This is the initial dialog box that is returned which forms the main login page without panel specific information
     return(
       redirect ? 
-      (<Redirect to='/' />)
+      (<React.Fragment><Redirect to='/' /></React.Fragment>)
       :
-      (<div>
+      (
+      showRegister ? <Register /> :
+      <React.Fragment>
+      <div>
       {props.openModal(
         <Dialog open aria-labelledby="form-dialog-title">
         <DialogTitle id="form-dialog-title">{getTitle()}</DialogTitle>
@@ -204,14 +237,16 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
           null}
           {
             error ? 
-            <div className='errors' color='red'>*{error}</div>
+            <>
+            <div className='errors' style={errorStyle}><p style={css`color: red`}><b>*{error}</b></p></div>
+            </>
             :
             null
           }
           </DialogContent>
       </Dialog>
       )}
-      </div>)
+      </div></React.Fragment>)
     )
 }
 

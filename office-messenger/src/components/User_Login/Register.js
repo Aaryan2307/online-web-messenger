@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Redirect } from 'react-router-dom'
 import { Auth } from 'aws-amplify'
 import { POST } from '../../utilities/utils'
 import { Form } from 'mvp-webapp'
@@ -9,7 +10,9 @@ import { css, jsx } from '@emotion/core'
 const Register = (props) => {
     const[email, setEmail] = useState(null)
     const[userDetails, setUserDetails] = useState(null)
+    const[redirect, setRedirect] = useState(false)
     return(
+        !redirect ?
             <Form 
             slides={[
                 {
@@ -71,6 +74,7 @@ const Register = (props) => {
                                 await Auth.confirmSignUp(event.email, event.verif_code)
                                 await Auth.signIn(event.email, event.password)
                                 POST('user', userDetails)
+                                setRedirect(true)
                             }
                             catch(err){
                                 throw err;
@@ -80,6 +84,8 @@ const Register = (props) => {
                 }
             ]}
             />
+            :
+            <Redirect to='/' />
     )
 }
 
