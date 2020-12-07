@@ -6,6 +6,8 @@ import PrivateRoute from './PrivateRoute'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import Login from './components/User_Login/Login';
+import Register from './components/User_Login/Register'
+import OrgCreator from './components/OrgCreator'
 import Modal from './components/Modal'
 import store from './store/store'
 import logo from './logo.svg';
@@ -33,7 +35,7 @@ function App() {
       },
       secondary: {
           main: '#18181b',
-          light: '#3e3e43',
+          light: '#a6a6a6',
           dark: '#000000',
           contrastText: '#ffffff',
       },

@@ -20,7 +20,7 @@ const modal = (state = {open: false, content: null}, action) => {
 }
 
 //this reducer is updated when the user logs in, so once the application is entered user information can be accessed easily
-const user = (state = {info: null}, action) => {
+const user = (state = null, action) => {
     switch(action.type) {
         case 'USER_UPDATE':
             return{
