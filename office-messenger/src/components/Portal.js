@@ -8,7 +8,7 @@ import CreateIcon from '@material-ui/icons/Create';
 import AddIcon from '@material-ui/icons/Add';
 import { Redirect, Switch, Route, Link } from 'react-router-dom' 
 import OrgCreator from './OrgCreator'
-import { connect } from 'react-redux'
+import { connect, useSelector } from 'react-redux'
 import { Auth } from 'aws-amplify'
 import { TrendingUpRounded } from '@material-ui/icons';
 /**@jsx jsx */
@@ -45,12 +45,14 @@ const Portal = (props) => {
     const[redirect, setRedirect] = useState(false)
     //actions is set to indicate the sidebar whether to be present or not
     const[actions, setActions] = useState(false)
+    //Returns promised JSON object GOTten from Lambda backend
     const fetchUser = async () => {
         let user = await GET('user')
         return user
     }
     useEffect(() => {
         let user_info = fetchUser()
+        console.log('user', user_info)
         props.updateUser(user_info)
     }, [])
 
@@ -178,10 +180,10 @@ const mapDispatchToProps = (dispatch) => {
           content
         })
       },
-      updateUser: (user_info) => {
+      updateUser: (update) => {
           dispatch({
               type: 'USER_UPDATE',
-              update: user_info,
+              update,
           })
       }
     }

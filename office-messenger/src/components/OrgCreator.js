@@ -91,12 +91,16 @@ const OrgCreator = (props) => {
 
     //process csv file (input) by removing the commas and indexing each seperated value into an array
     let processFile = (csv) => {
+        //Some csvs will be split by actual commas as they will e stored in something like notepad
         if(csv.includes(',')){
             console.log(csv.split(','))
+            //The items are split by comma and put into the corresponding array
             setEmailOptions(removeSpaces(csv.split(',')))
         }
         else{
+            //other csvs automatically split the items into lines due to excels formatting. This is the other way it should be read
             console.log(csv.split('\n'))
+            //this is the same as the previous selection staement, but by new line instead of comma
             setEmailOptions(removeSpaces(csv.split('\n')))
         }
     }
@@ -230,7 +234,7 @@ const OrgCreator = (props) => {
                                       newValue.pop()
                                   }
                                   //Check if the option entered is actually an email
-                                  else if(!checkForEmail(newItem)){
+                                  else if(!checkForEmail(newValue[newValue.length - 1])){
                                       alert('Please enter a valid email')
                                       newValue.pop()
                                   }
@@ -243,6 +247,7 @@ const OrgCreator = (props) => {
                               else{
                                   //Setting the wholse list to the state if the user wishes to do so
                                 if(newValue[newValue.length -1] === 'Whole List'){
+                                    newValue = emailOptions
                                     setOrgDetails({...orgDetails, email_list: emailOptions})
                                 }
                                 else{
