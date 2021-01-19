@@ -32,7 +32,20 @@ const user = (state = null, action) => {
     }
 }
 
+const workspace = (state = null, action) => {
+    switch(action.type) {
+        case 'SET_CURRENT_ORG':
+            console.log('state', state)
+            return{
+                ...state,
+                ...action.update,
+            }
+        default:
+            return state;
+    }
+}
+
 //this is the "global store" from which the global state can be accessed and altered through dispatches
-const store = createStore(combineReducers({modal, user}))
+const store = createStore(combineReducers({modal, user, workspace}))
 
 export default store

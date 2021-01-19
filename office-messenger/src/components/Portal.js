@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { GET, } from '../utilities/utils'
-import { AppBar, Toolbar, IconButton, Avatar, Typography, Slide, withTheme, Button, Dialog, DialogTitle, DialogContent, TextField } from '@material-ui/core';
+import { GET, POST } from '../utilities/utils'
+import { AppBar, Toolbar, IconButton, Avatar, Typography, Slide, withTheme, Button, Dialog, DialogTitle, DialogContent, TextField, CircularProgress, Box, Tooltip } from '@material-ui/core';
 import { css, jsx } from '@emotion/core'
 import MenuIcon from '@material-ui/icons/Menu';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
@@ -8,6 +8,8 @@ import CreateIcon from '@material-ui/icons/Create';
 import AddIcon from '@material-ui/icons/Add';
 import { Redirect, Switch, Route, Link } from 'react-router-dom' 
 import OrgCreator from './OrgCreator'
+import OrgCard from './OrgCard'
+import Workspace from './Workspace_Comps/Workspace'
 import { connect, useSelector } from 'react-redux'
 import { Auth } from 'aws-amplify'
 import { TrendingUpRounded } from '@material-ui/icons';
@@ -45,15 +47,31 @@ const Portal = (props) => {
     const[redirect, setRedirect] = useState(false)
     //actions is set to indicate the sidebar whether to be present or not
     const[actions, setActions] = useState(false)
+
+    const[loadingWheel, setLoading] = useState(true)
+
+    const[loadingStatus, setLoadingStatus] = useState('')
+    const[workspaces, setWorkspaces] = useState([])
     //Returns promised JSON object GOTten from Lambda backend
     const fetchUser = async () => {
         let user = await GET('user')
         return user
     }
+    const fetchWorkspaces = async () => {
+        let workspaces = await GET('user-workspaces')
+        return workspaces
+    }
     useEffect(() => {
-        let user_info = fetchUser()
-        console.log('user', user_info)
-        props.updateUser(user_info)
+        (async () => {
+            let user_info = await fetchUser()
+            //console.log('user', user_info)
+            props.updateUser(user_info)
+            //console.log('use', props.user)
+            let w = await fetchWorkspaces()
+            setWorkspaces(w)
+            console.log('workspaces', w)
+            setLoading(false)
+        })()
     }, [])
 
     //simple logout handler procedure which tries to log out the current user session, and redirecs to login page
@@ -65,6 +83,24 @@ const Portal = (props) => {
         }
         catch(err){
             console.log('error signing out', err)
+        }
+    }
+
+    //function fires to add the user to the given organisation code 
+    const addMember = async () => {
+        //Code gets value from the DOM input element
+        let code = document.getElementById("name").value;
+        console.log('code', code)
+        try{
+            //try catch to give appropriate error if backend function fails
+            //response will give the appropriate error message for user if successful, either the user will join, or will be notified they are already a part of the workspace
+            let response = await POST('workspace-user', {code,})
+            alert(response)
+            props.closeModal()
+            window.location.reload()
+        }
+        catch(e){
+            alert("Was not able to join workspace. Please try again")
         }
     }
 
@@ -85,7 +121,8 @@ const Portal = (props) => {
                         type="string"
                         fullWidth
                     />
-                    <Button onClick={() => {props.closeModal()}} variant='outlined'>Join</Button>
+                    {/*Button click now fires the addMember function to also run the backend*/ }
+                    <Button onClick={addMember} variant='outlined'>Join</Button>
                     </DialogContent>
                     </React.Fragment>
             )
@@ -154,19 +191,54 @@ const Portal = (props) => {
                 <IconButton edge='start' className='set_actions' onClick={() => {setActions(!actions)}}>
                     <MenuIcon />
                 </IconButton>
+                <Tooltip title='View your workspaces'>
                 <Typography variant='h5'>
                     <Link to='/'>My Workspaces</Link>
                 </Typography>
+                </Tooltip>
                 </Toolbar>
             </AppBar>
             <Switch>
                 <Route path='/create' component={OrgCreator} />
             </Switch>
-            </div> )
+            {//simple ternery statement which shows a loading wheel until user organisations are GOTten
+            loadingWheel ? 
+             <Box
+             display="flex"
+             flexDirection="column"
+             alignSelf="center"
+             justifySelf="center"
+             alignItems="center"
+             padding={50}
+         >
+             <Typography variant="h3" color="primary">
+                 Loading Workspaces...
+             </Typography>
+             <CircularProgress color="primary" />
+         </Box>
+         :
+         <div style={{marginTop: 100, display: 'flex', flexDirection: 'row', flexWrap: 'wrap'}}>
+         {workspaces.map((w) => 
+         <div style={{padding: 40, display: 'flex', justifyContent: 'space-between', maxWidth: 500, }}> 
+             <OrgCard ws={w} />
+             </div>
+         )}
+         </div>
+            
+        }
+            </div>
+             )
             :
             (<Redirect to='/login' />)
     )
 }
+
+const mapStateToProps = (state) => {
+    return {
+        user: state.user,
+    }
+} 
+
 const mapDispatchToProps = (dispatch) => {
     return {
       closeModal: () => {
@@ -189,4 +261,4 @@ const mapDispatchToProps = (dispatch) => {
     }
   }
 
-export default connect(null, mapDispatchToProps)(withTheme(Portal))
+export default connect(mapStateToProps, mapDispatchToProps)(withTheme(Portal))
