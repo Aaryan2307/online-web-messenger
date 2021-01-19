@@ -6,6 +6,7 @@ import PrivateRoute from './PrivateRoute'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import Login from './components/User_Login/Login';
+import Workspace from './components/Workspace_Comps/Workspace'
 import Register from './components/User_Login/Register'
 import OrgCreator from './components/OrgCreator'
 import Modal from './components/Modal'
@@ -51,6 +52,7 @@ function App() {
       <Router>
         <Switch>
           <Route path='/login' component={Login} />
+          <PrivateRoute path='/workspace' component={Workspace} />
           <PrivateRoute path='/' component={Portal}/>
           </Switch>
         </Router>
