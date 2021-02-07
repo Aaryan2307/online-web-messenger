@@ -6,12 +6,14 @@ import MenuIcon from '@material-ui/icons/Menu';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import CreateIcon from '@material-ui/icons/Create';
 import AddIcon from '@material-ui/icons/Add';
+import PersonIcon from '@material-ui/icons/Person';
 import { Redirect, Switch, Route, Link } from 'react-router-dom' 
 import OrgCreator from './OrgCreator'
 import OrgCard from './OrgCard'
 import Workspace from './Workspace_Comps/Workspace'
 import { connect, useSelector } from 'react-redux'
 import { Auth } from 'aws-amplify'
+import {Form} from 'mvp-webapp'
 import { TrendingUpRounded } from '@material-ui/icons';
 /**@jsx jsx */
 
@@ -62,6 +64,7 @@ const Portal = (props) => {
         return workspaces
     }
     useEffect(() => {
+        //at the mounting of the component, it will get user info and the users workspace objects and set it to the statae
         (async () => {
             let user_info = await fetchUser()
             //console.log('user', user_info)
@@ -129,6 +132,51 @@ const Portal = (props) => {
         )
     }
 
+    const editProfile = () => {
+        return(
+            props.openModal(
+<Form 
+            slides={[
+                {
+                    title: 'Profile Editor',
+                    questions: [
+                        {
+                            title: 'Email',
+                            type: 'email',
+                            default: props.user.email,
+                            id: 'email',
+                            required: true
+                        },
+                        {
+                            title: 'Pick a Display Name',
+                            type: 'text',
+                            default: props.user.display_name,
+                            id: 'user_display_name',
+                            required: true
+                        },
+                    ],
+                    onSubmit: async (event) => {
+                        const editiedUser = {
+                            email: event.email,
+                            display_name: event.user_display_name,
+                        }
+                        try{
+                            POST('user', {user: {...props.user, email: event.email, display_name: event.user_display_name}, edited: true})
+                            alert('Profile info changed')
+                            props.closeModal()
+                            window.location.reload(false)
+                        }
+                        catch(e){
+                            alert(e)
+                        }
+                    }
+                },
+            ]}
+            />
+            )
+        )
+    }
+
     //js objcet/dictionary of sidebar actions that can be mapped onto the sidebar as button, this is shown below
     /* label: string
        icon: JSX MUI Icon
@@ -148,10 +196,16 @@ const Portal = (props) => {
             onClick: joinOrg
         },
         {
+            label: 'Edit Profile',
+            icon: <PersonIcon />,
+            onClick: editProfile
+
+        },
+        {
             label: 'Log Out',
             icon: <ExitToAppIcon />,
             onClick: logoutHandler,
-        }
+        },
     ]
 
 
@@ -218,7 +272,8 @@ const Portal = (props) => {
          </Box>
          :
          <div style={{marginTop: 100, display: 'flex', flexDirection: 'row', flexWrap: 'wrap'}}>
-         {workspaces.map((w) => 
+         {//mapping the workspaces loaded into the local state
+         workspaces.map((w) => 
          <div style={{padding: 40, display: 'flex', justifyContent: 'space-between', maxWidth: 500, }}> 
              <OrgCard ws={w} />
              </div>

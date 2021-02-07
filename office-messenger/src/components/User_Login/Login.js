@@ -128,7 +128,7 @@ const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}
         case 'sign-up':
           return(
             <div>
-            <Register />
+            <Register setPanel={setPanel} />
             </div>
           )
         default:

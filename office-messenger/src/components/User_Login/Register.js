@@ -85,7 +85,11 @@ const Register = (props) => {
             ]}
             />
             :
-            <Redirect to='/' />
+            (
+                <div>
+                {props.setPanel('login')}
+                </div>
+            )
     )
 }
 

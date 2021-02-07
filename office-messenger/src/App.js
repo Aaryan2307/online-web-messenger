@@ -10,6 +10,7 @@ import Workspace from './components/Workspace_Comps/Workspace'
 import Register from './components/User_Login/Register'
 import OrgCreator from './components/OrgCreator'
 import Modal from './components/Modal'
+import Contacts from './components/Workspace_Comps/Contacts'
 import store from './store/store'
 import logo from './logo.svg';
 import './App.css';
