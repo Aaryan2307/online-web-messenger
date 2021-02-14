@@ -1,10 +1,13 @@
 import React, {useState, useEffect, useRef} from 'react'
-import { Box, withTheme, Grid, Input, IconButton, Divider, makeStyles, createStyles, Slide, Typography } from '@material-ui/core'
+import { Box, withTheme, Grid, Input, IconButton, Divider, makeStyles, createStyles, Slide, Typography, Badge, Tooltip } from '@material-ui/core'
 import {connect, useSelector, useDispatch} from 'react-redux'
 import ChatMessage from './ChatMessage'
+import {POST} from '../../../utilities/utils'
 import Thread from './Thread'
 import SendOutlined from '@material-ui/icons/SendOutlined';
 import SendIcon from '@material-ui/icons/Send';
+import AttachFileIcon from '@material-ui/icons/AttachFile';
+import CancelIcon from '@material-ui/icons/Cancel';
 import CloseIcon from '@material-ui/icons/Close';
 import EmojiEmotionsIcon from '@material-ui/icons/EmojiEmotions';
 import {makeId} from '../../../utilities/utils'
@@ -27,7 +30,7 @@ const getStyle = (props) => {
             zIndex: 2;
         }
         .msgInput{
-            width: 83%;
+            width: 70%;
             color: #ffffff;
         }
 
@@ -71,6 +74,8 @@ const useStyles = makeStyles((theme) => {
 const Widget = (props) => {
     const classes = useStyles()
     const[message, setMessage] = useState('')
+    const[file, setFile] = useState(null)
+    //const[urlGotten, setUrlGotten] = useState(false)
     const[showEmojis, setShowEmojis] = useState(false)
     
     const[reply, setReply] = useState(false)
@@ -95,9 +100,10 @@ const Widget = (props) => {
     const dispatch = useDispatch()
 
     const scrollRef = useRef(null)
+    let upload = null
 
     useEffect(() => {
-        if(messages.length){
+        if(messages.length && scrollRef.current){
             scrollRef.current.scrollIntoView()
         }
     }, [messages])
@@ -111,12 +117,18 @@ const Widget = (props) => {
         setReply(renderReply);
     }, [renderReply]);
 
+    useEffect(() => {
+        console.log('file state', file)
+    }, [file])
+
     const sendMessage = () => {
         const id = makeId();
         const timestamp_ms = new Date().getTime()
         if(reply){
             const post = {
-                message_content: message,
+                message_content: file ? (((file.type == 'jpg') || (file.type == 'png')) ? 'image' : file.fileName) : message,
+                type: file ? 'file' : 'text',
+                file_name: file ? file.fileName : null,
                 message_id: id,
                 timestamp_ms,
                 reply: {
@@ -148,6 +160,7 @@ const Widget = (props) => {
                     recipient: {
                         type: 'direct',
                         to: conversation.user_id,
+                        from: props.user.user_id,
                         sender_display: props.user.display_name,
                     }
                 })
@@ -155,11 +168,14 @@ const Widget = (props) => {
         }
         else{
             const post = {
-                message_content: message,
+                message_content: file ? (((file.type == 'jpg') || (file.type == 'png')) ? file.fileData : file.fileName) : message,
+                type: file ? 'file' : 'text',
+                file: file ? file : null,
                 message_id: id,
                 timestamp_ms,
                 replies: [],
             };
+            console.log('post', post)
             dispatch({
                 type: 'ADD_MESSAGE',
                 message: {
@@ -179,13 +195,16 @@ const Widget = (props) => {
                     recipient: {
                         type: 'direct',
                         to: conversation.user_id,
+                        from: props.user.user_id,
                         sender_display: props.user.display_name,
-                    }
+                    },
+                    ws: props.ws.organisation_id
                 })
             );
         }
         setReply(false)
         setMessage('')
+        setFile(null)
     }
 
     const toggleReply = (m) => {
@@ -196,6 +215,62 @@ const Widget = (props) => {
             setReply(false);
         }
     };
+
+    const deleteMessage = (message) => {
+        console.log('message to delete', message)
+        dispatch({
+            type: 'DELETE_MESSAGE',
+            message,
+        })
+        props.client.websocket.send(
+            JSON.stringify({
+                action: 'delete-message',
+                message: message.message,
+                recipient: message.recipient,
+                ws: props.ws.organisation_id
+            })
+        )
+    }
+
+    const openDialog = () => {
+        upload.click();
+      }
+
+      const clearFile = () => {
+        setFile(null)
+        upload = null
+        setMessage('')
+    }
+
+    const onFileChange = (e) => {
+        let newFile = e.target.files[0]
+        console.log('new file', newFile.size)
+        if(newFile.size < 65000){
+            let reader = new FileReader()
+            reader.onload = (event) => {
+                setFile({
+                    fileData: event.target.result,
+                    fileName: newFile.name,
+                    type: newFile.name.split('.')[1]
+                })
+          }
+          reader.readAsDataURL(newFile)
+        }
+        else{
+            alert('File is too big... please upload a file under 65kB')
+        }
+    }
+
+    // const getUrl = async () => {
+    //     const dataUrl = await POST('upload-file', {
+    //         file: file,
+    //         ws: props.ws.organisation_id
+    //         })
+    //     console.log('type', file.fileName.split('.')[1])
+    //     console.log(dataUrl)
+    //     setFile({...file, fileData: dataUrl})
+    //     setUrlGotten(true)
+    //   }
 
     return(
         <div style={{padding: 100, marginLeft: 400, position: 'fixed'}}>
@@ -227,7 +302,10 @@ const Widget = (props) => {
                             <React.Fragment>
                             <Thread
                                 {...r.message}
+                                sender={r.recipient.from}
                                 replying={toggleReply}
+                                threadToShow={r}
+                                delete={deleteMessage}
                                 key={r.message.message_id}
                                 user_display_name = {r.recipient.from == props.user.user_id ? 'You' : r.recipient.sender_display}
                             
@@ -286,6 +364,10 @@ const Widget = (props) => {
                 <Input
                 className='msgInput'
                     value={message}
+                    disabled={file ? true : false}
+                    inputProps={{
+                        maxLength: 65000
+                    }}
                     onChange={(e) => {
                         setMessage(e.target.value);
                     }}
@@ -299,6 +381,7 @@ const Widget = (props) => {
                 />
                 <IconButton
                     color="primary"
+                    disabled={file ? true : false}
                     onClick={(e) => {
                         e.preventDefault()
                         setShowEmojis(!showEmojis)
@@ -307,11 +390,35 @@ const Widget = (props) => {
                     <EmojiEmotionsIcon />
                 </IconButton>
                 <IconButton
+                    color='primary'
+                    className={classes.button}
+                    onClick={openDialog}
+                    component='span'
+                >
+                      <Badge color='primary' variant='dot' invisible={!file}>
+                     <input type='file' style={{display: "none"}} ref={(ref) => {upload = ref}} onChange={onFileChange}/>
+                    <AttachFileIcon />
+                    </Badge>
+                </IconButton>
+                {file ?
+                <Tooltip title={`Remove file?`}>
+                <IconButton
+                  color='primary'
+                  className={classes.button}
+                  onClick={clearFile}
+                >
+                  <CancelIcon />
+                  </IconButton>
+                  </Tooltip>
+                  :
+                  null
+              }
+                <IconButton
                     color="primary"
-                    disabled={!message.replace(/\s/g, '').length}
+                    disabled={!message.replace(/\s/g, '').length && !file}
                     onClick={sendMessage}
                 >
-                    {(message === '' ) ? <SendOutlined /> : <SendIcon />}
+                    {(message === '' && !file) ? <SendOutlined /> : <SendIcon />}
                 </IconButton>
             </Grid>
                 </Box>

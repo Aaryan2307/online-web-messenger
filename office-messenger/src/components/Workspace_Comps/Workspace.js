@@ -2,6 +2,7 @@ import React, {useEffect, useState,} from 'react'
 import {connect, useSelector, useDispatch} from 'react-redux'
 import {Drawer, List, Divider, ListItem, AppBar, Typography, ListItemText, ListSubheader, Avatar, Menu, MenuItem, Button, makeStyles, withTheme, Toolbar, TextField, InputAdornment} from '@material-ui/core'
 import SearchIcon from '@material-ui/icons/Search';
+import sha256 from 'crypto-js/sha256'
 import { GET, POST } from '../../utilities/utils'
 import {Link, Switch, Route} from 'react-router-dom'
 import avatar from '../../media/no_profile.png'
@@ -11,6 +12,8 @@ import AdminSettings from './AdminSettings'
 import Client from './Client'
 // import classes from '*.module.css'
 
+
+//this function taken from mui api styles component through className prop
 const useStyles = makeStyles((theme) => (
     {
         drawerPaper: {
@@ -35,6 +38,9 @@ const Workspace = (props) => {
     const messageHandlers = {
         'send-message': (response) => {
             props.addMessage(response)
+        },
+        'delete-message': (response) => {
+            props.deleteMessage(response)
         },
         'online-status': (statusMessage) => {
             console.log('temp for users', props.ws)
@@ -159,6 +165,15 @@ const Workspace = (props) => {
                     })
                 }
                 props.setMessages(ws_messages)
+                const missedMessageHash = sha256(props.user.user_id + props.ws.organisation_id).toString()
+                POST('missed-messages', {id: missedMessageHash}).then((m) => {
+                    console.log('m', m)
+                    if(m){
+                        for(let message of m){
+                            props.addMessage(message)
+                        }
+                    }
+                })
             }
         }
     },[usersLoaded])
@@ -171,7 +186,7 @@ const Workspace = (props) => {
                 )
             case 'contacts':
                 return(
-                    <Contacts />
+                    <Contacts setWindow={setWindow} users={users} setCurrentConvo={setCurrentConvo} />
                 )
             case 'admin_settings':
                 return(
@@ -189,7 +204,7 @@ const Workspace = (props) => {
     console.log('use', filteredDms)
     return(
         //return corresponding jsx 
-        wsLoaded ?
+        wsLoaded && usersLoaded ?
         <div style={{overflowY: 'hidden'}}>
              <Drawer
             variant='permanent'
@@ -275,7 +290,7 @@ const Workspace = (props) => {
                 </Typography>
                 <Button style={{marginLeft: 50, marginRight: 20}} onClick={() => {
                     setWindow('contacts')
-                    props.setWorkspace({...props.ws, members_list: users})
+                    //props.setWorkspace({...props.ws, members_list: users})
                 }}>
                     Contacts
                     </Button>
@@ -350,6 +365,12 @@ const mapDispatchToProps = (dispatch) => {
         addMessage: (message) => {
             dispatch({
                 type: 'ADD_MESSAGE',
+                message,
+            })
+        },
+        deleteMessage: (message) => {
+            dispatch({
+                type: 'DELETE_MESSAGE',
                 message,
             })
         },

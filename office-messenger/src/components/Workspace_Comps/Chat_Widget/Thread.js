@@ -1,6 +1,8 @@
 import React, {useState} from 'react'
-import { Box, Button, createStyles, IconButton, makeStyles, Theme } from '@material-ui/core';
+import { Box, Button, createStyles, IconButton, makeStyles, Theme, Menu, MenuItem, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@material-ui/core';
+import {connect} from 'react-redux'
 import ChatMessage from './ChatMessage'
+import MoreVertIcon from '@material-ui/icons/MoreVert';
 import ReplyIcon from '@material-ui/icons/Reply';
 
 const useStyles = makeStyles((theme) =>
@@ -9,7 +11,7 @@ const useStyles = makeStyles((theme) =>
             width: '100%',
             boxSizing: 'border-box',
         },
-        message: {},
+        message: {width: '100%'},
         replies: {
             width: '90%',
             borderLeft: `2px dotted ${theme.palette.secondary.light}`,
@@ -32,14 +34,19 @@ const Thread = (props) => {
     const classes = useStyles()
 
     const[collapse, setCollapse] = useState(false)
+    const[anchorEl, setAnchorEl] = useState(null)
 
-    console.log('props', props)
+    console.log(' thread props', props)
 
     const replies = Array.from(
         new Set(props.replies.map((r) => r.message.message_id))
     ).map((id) => {
         return props.replies.find((r) => r.message.message_id === id);
     });
+
+    const personalHandler = (e) => {
+        setAnchorEl(e.currentTarget)
+    }
 
     return(
         <Box
@@ -59,13 +66,42 @@ const Thread = (props) => {
                 <ChatMessage {...props} />
                 <IconButton
                     color="primary"
-                    style={{marginLeft: 350}}
-                    onClick={() => {
-                        props.replying(props);
-                    }}
+                    style={{marginLeft: '65%', position: 'absolute'}}
+                    onClick={personalHandler}
                 >
-                    <ReplyIcon />
+                    <MoreVertIcon />
                 </IconButton>
+                     <Menu
+                        anchorEl={anchorEl}
+                        keepMounted
+                        open={Boolean(anchorEl)}
+                        onClose={() => {
+                            setAnchorEl(null)
+                        }}
+                        >
+                <MenuItem onClick={() => {
+                    props.replying(props)
+                    setAnchorEl(null)
+                }}>Reply</MenuItem>
+                {props.sender === props.user.user_id ? <MenuItem onClick={() => {
+                    setAnchorEl(null)
+                    props.openModal(
+                        <>
+                        <DialogTitle>Delete Message</DialogTitle>
+                        <DialogContent>
+                        <DialogContentText>Are you sure you want to delete this thread?</DialogContentText>
+                        </DialogContent>
+                        <DialogActions>
+                        <Button onClick={() => {
+                            console.log('threads', props.threadToShow)
+                            props.delete(props.threadToShow)
+                            props.closeModal()
+                        }}>Delete Thread</Button>
+                        </DialogActions>
+                        </>
+                    )
+                }}>Delete Thread</MenuItem> : null}
+                </Menu>
             </Box>
             {replies?.length !== 0 ? (
                 <Box
@@ -105,7 +141,7 @@ const Thread = (props) => {
                                 // @ts-ignore
                                 replies.map((r) => {
                                     console.log('render', r)
-                                    return <ChatMessage {...r.message} user_display_name={props.user_display_name} key={r.message.message_id} />;
+                                    return <ChatMessage {...r.message} user_display_name={r.recipient.from == props.user.user_id ? 'You' : r.recipient.sender_display} key={r.message.message_id} />;
                                 })
                             }
                         </>
@@ -117,4 +153,27 @@ const Thread = (props) => {
 
 }
 
-export default Thread
+const mapStateToProps = (state) => {
+    return{
+        user: state.user
+    }
+}
+
+const mapDispatchToProps = (dispatch) => {
+    return{
+        openModal: (content) => {
+            dispatch({
+              type: 'OPEN_MODAL',
+              content
+            })
+          },
+          closeModal: () => {
+              dispatch({
+                  type: 'CLOSE_MODAL'
+              })
+          }
+    }
+
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Thread)

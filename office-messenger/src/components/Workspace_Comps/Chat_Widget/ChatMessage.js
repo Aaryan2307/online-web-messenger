@@ -1,4 +1,5 @@
 import React from 'react'
+import {connect} from 'react-redux'
 import { Box, createStyles, makeStyles, withTheme, Typography } from '@material-ui/core';
 
 const useStyles = makeStyles((theme) =>
@@ -13,8 +14,9 @@ const useStyles = makeStyles((theme) =>
             marginBottom: '5px',
         },
         content: {
-            overflowWrap: 'anywhere',
+            overflowWrap: 'break-word',
             textAlign: 'left',
+            width: '80%'
         },
         sender: {
             fontWeight: 'bolder',
@@ -100,6 +102,7 @@ const embedRegEx = (messageContent, links) => {
 };
 
 const ChatMessage = (props) => {
+    console.log('props chatmsg', props)
     const classes = useStyles();
     let date = new Date(props.timestamp_ms)
     let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -140,11 +143,38 @@ const ChatMessage = (props) => {
                 className={classes.content}
             >
                 <Typography className={classes.content} variant="body2">
-                    {embedRegEx(props.message_content, classes.links)}
+                    {/* {embedRegEx(props.message_content, classes.links)} */}
+                    {props.file ? 
+                        (props.file.type == 'png') || (props.file.type == 'jpg') ?
+                        (
+                        <a style={{cursor: 'hover'}} onClick={() => {
+                            props.openModal(
+                                <img style={{width: '100%', height: '100%'}} src={props.file.fileData}/>
+                            )
+                        }}><img style={{maxWidth: 200, maxHeight: 300, cursor: 'hover'}} src={props.file.fileData}/></a>
+                         )
+                         :
+                         <a className={classes.links} href={props.file.fileData} target='_blank' download={props.file.fileName}>{props.file.fileName}</a>
+                        :
+                        (
+                        embedRegEx(props.message_content, classes.links)
+                        )
+                    }
                 </Typography>
             </Box>
         </Box>
     );
 }
 
-export default withTheme(ChatMessage)
+const mapDispatchToProps = (dispatch) => {
+    return {
+      openModal: (content) => {
+        dispatch({
+          type: 'OPEN_MODAL',
+          content
+        })
+      },
+    }
+  }
+
+export default connect(null, mapDispatchToProps)(withTheme(ChatMessage))

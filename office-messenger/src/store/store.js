@@ -98,6 +98,37 @@ const chat = (state = {messages: []}, action) => {
                 messages: action.messages
             }
         }
+        case 'DELETE_MESSAGE':
+            let msg_block = null
+            let updated_with_delete = [...state.messages]
+            for(let i in updated_with_delete){
+                if((updated_with_delete[i].recipient.type == action.message.recipient.type) && ((updated_with_delete[i].recipient.to == action.message.recipient.to) || (updated_with_delete[i].recipient.to == action.message.recipient.from))){
+                    console.log('accessing message blocks')
+                    msg_block = updated_with_delete[i]
+                    console.log('message block before delete', msg_block)
+                    // if(action.message.reply){
+                    //     for(j in message_block.message_stream){
+                    //         if(message_block.message_stream[j].message.message_id == action.message.reply.replyTo){
+                    //             let message_to_update = message_block.message_stream[j]
+                    //             message_to_update.message.replies = [...message_to_update.message.replies, action.message]
+                    //         }
+                    //     }
+                    // }
+                    let updated_message_stream = [...msg_block.message_stream]
+                    let message_to_delete = {...action.message}
+                    console.log('deleting', message_to_delete)
+                    let delete_in_stream = updated_message_stream.findIndex(m => m.message.message_id === message_to_delete.message.message_id)
+                    updated_message_stream.splice(delete_in_stream, 1)
+
+                    msg_block = {...msg_block, message_stream: updated_message_stream}
+                    updated_with_delete[i] = msg_block
+
+                    break;
+                }
+            }
+            return{
+                messages: updated_with_delete
+            }
         default:
             return state
     }
