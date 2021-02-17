@@ -47,7 +47,6 @@ export default class ProtectedRoute extends Component {
                 //Ternery statement to check if user is authenticated which will generate the route passed into this component as a "prop"
                 this.state.authenticated ?
                 <Route
-                    exact
                     {...props}
                     render={(props) =>
                             <Component {...props} />

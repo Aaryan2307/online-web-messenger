@@ -22,13 +22,15 @@ const getStyle = (props) => {
 }
 
 const OrgCard = (props) => {
-   const w = useSelector(state => state.workspace) 
+    //If a workspace is set from the async redux state update open a new window to enter that workspace
    useEffect(() => {
     console.log('word', props.workspace)
     if(props.workspace){
         window.open(`/workspace`)
     }
    }, [props.workspace]) 
+
+   //simple dictionary that will show an icon depending on the type of organisation
    const mapTypeToIcon = {
        'School': <SchoolIcon />,
        'Common Interests': <WbIncandescentIcon />,
@@ -37,6 +39,7 @@ const OrgCard = (props) => {
 
    }
    let workspace = props.ws 
+   //corresponding jsx that is the card
     return(
         <div>
             <Card className='card' css={getStyle(props)}>
@@ -62,6 +65,7 @@ const OrgCard = (props) => {
                     <Button size="small" color="secondary" variant='outlined' onClick={() => {
                         console.log('props', props)
                         //console.log(props.workspace)
+                        props.setWorkspace(workspace)
                         window.open(`/workspace?id=${workspace.organisation_id}`)
                     }}>
                         <b>Enter Workspace</b>
@@ -72,6 +76,7 @@ const OrgCard = (props) => {
     )
 }
 
+//calling parts of the global state and putting it in the component props object for local use
 const mapStateToProps = (state) => {
     return {
         workspace: state.workspace,
