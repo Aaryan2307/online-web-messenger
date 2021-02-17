@@ -1,7 +1,9 @@
 import React, {useEffect, useState,} from 'react'
 import {connect, useSelector, useDispatch} from 'react-redux'
-import {Drawer, List, Divider, ListItem, AppBar, Typography, ListItemText, ListSubheader, Avatar, Menu, MenuItem, Button, makeStyles, withTheme, Toolbar, TextField, InputAdornment} from '@material-ui/core'
+import {Drawer, List, Divider, ListItem, AppBar, Typography, DialogActions, DialogContent, ListSubheader, Avatar, Menu, MenuItem, Button, makeStyles, withTheme, Toolbar, TextField, InputAdornment, DialogTitle} from '@material-ui/core'
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import SearchIcon from '@material-ui/icons/Search';
+import AddIcon from '@material-ui/icons/Add';
 import sha256 from 'crypto-js/sha256'
 import { GET, POST } from '../../utilities/utils'
 import {Link, Switch, Route} from 'react-router-dom'
@@ -25,6 +27,7 @@ const useStyles = makeStyles((theme) => (
 const Workspace = (props) => { 
     const[wsLoaded, setWsLoaded] = useState(false)
     const[users, setUsers] = useState([])
+    const[groups, setGroups] = useState([])
     const[usersLoaded, setUsersLoaded] = useState(false)
     const[statusChange, setStatusChange] = useState(0)
     const[anchorEl, setAnchorEl] = useState(null)
@@ -32,8 +35,9 @@ const Workspace = (props) => {
     const[windowPanel, setWindow] = useState('')
     const[directSearch, setDirectSearch] = useState('')
     const[groupSearch, setGroupSearch] = useState('')
-
-    const dispatch = useDispatch()
+    const[submitGroup, setSubmitGroup] = useState(false)
+    const[newGroupName, setNewGroupName] = useState('')
+    const[newGroupMembers, setNewGroupMembers] = useState([])
 
     const messageHandlers = {
         'send-message': (response) => {
@@ -68,6 +72,22 @@ const Workspace = (props) => {
     }
 
     const classes = useStyles()
+
+    useEffect(() => {
+        if(submitGroup){
+            console.log('group form', newGroupMembers)
+            console.log('name', newGroupName)
+            POST('group-channel', {name: newGroupName, members_list: newGroupMembers, ws: props.ws.organisation_id}).then((r) => {
+                console.log('success')
+                alert('Group channel successfully created')
+                window.location.reload()
+            })
+            .catch((err) => {
+                alert('Group was not able to be created. Please try again')
+            })
+        }
+        setSubmitGroup(false)
+    }, [submitGroup])
 
     useEffect(() => {
         //console.log(props.location.search) //?id={_org_id}
@@ -109,7 +129,7 @@ const Workspace = (props) => {
             //         //setUsersLoaded(true)
             //     })
             // }
-            POST('given-user', {id_list: props.ws.members_list}).then((u) => {
+            POST('given-user', {id_list: props.ws.members_list, type: 'user'}).then((u) => {
                 let otherUsers = []
                 for(let user of u){
                     if(user.user_id != props.user.user_id){
@@ -118,7 +138,19 @@ const Workspace = (props) => {
                 }
                 setUsers(otherUsers)
                 setUsersLoaded(true)
-                props.setWorkspace({...props.ws, members_list: list})
+                props.setWorkspace({...props.ws, members_list: otherUsers})
+            })
+
+            POST('given-user', {id_list: props.ws.groups, type: 'group'}).then((g) => {
+                console.log('org groups', g)
+                let users_groups = []
+                for(let group of g){
+                    if(group.members_list.includes(props.user.user_id)){
+                        users_groups.push(group)
+                    }
+                }
+                setGroups(users_groups)
+                props.setWorkspace({...props.ws, groups: users_groups})
             })
         }
     }, [wsLoaded])
@@ -136,7 +168,7 @@ const Workspace = (props) => {
     },[users])
 
     useEffect(() => {
-        if(usersLoaded){
+        if(usersLoaded && groups.length){
             let client = new Client(props.user.user_id, props.ws.organisation_id, messageHandlers)
             props.setClient(client)
             if(users.length){
@@ -160,6 +192,15 @@ const Workspace = (props) => {
                         recipient: {
                             type: 'direct',
                             to: u.user_id
+                        },
+                        message_stream: []
+                    })
+                }
+                for(let g of groups){
+                    ws_messages.push({
+                        recipient: {
+                            type: 'group',
+                            to: g.group_id
                         },
                         message_stream: []
                     })
@@ -195,13 +236,19 @@ const Workspace = (props) => {
         }
     }
 
+    const postForm = () => {
+        setSubmitGroup(true)
+    }
+
     const personalHandler = (e) => {
         setAnchorEl(e.currentTarget)
     }
     let filteredDms = users.filter((user) => {
         return user.display_name.toLowerCase().indexOf(directSearch.toLowerCase()) !== -1
     })
-    console.log('use', filteredDms)
+    let filteredGroups = groups.filter((group) => {
+        return group.name.toLowerCase().indexOf(groupSearch.toLowerCase()) !== -1
+    })
     return(
         //return corresponding jsx 
         wsLoaded && usersLoaded ?
@@ -243,29 +290,11 @@ const Workspace = (props) => {
                             </ListItem>
                         )
                     })}
-                    {/* <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem>
-                    <ListItem>gsr</ListItem> */}
                     </div>
                     </List>
                     <Divider />
-                    <List subheader={<ListSubheader>Group Channels</ListSubheader>}>
+                    <List style={{maxHeight:'50%'}}>
+                    <ListSubheader>Group Channels</ListSubheader>
                     <TextField
                     onChange={(e) => {
                         setGroupSearch(e.target.value)
@@ -279,8 +308,99 @@ const Workspace = (props) => {
                         ),
                       }}
                 />
-                        <ListItem>General</ListItem>
+                <div style={{overflowY: 'scroll', maxHeight: '80%'}}>
+                {
+                    filteredGroups.map((g) => {
+                        return(
+                            <ListItem style={{textOverflow: 'ellipsis', fontSize: 13}} button
+                            onClick={(e) => {
+                                setWindow('chat')
+                                setCurrentConvo({...g, display_name: g.name})
+                            }}>
+                            {g.name}
+                            </ListItem>
+                        )
+                    })}
+                    </div>
                         </List>
+                    <Divider />
+                    <Button style={{marginTop: 30}} onClick={() => {
+                        props.openModal(
+                            <>
+                            <DialogTitle>Group Creation</DialogTitle>
+                            <form onSubmit={(e) => {
+                                e.preventDefault()
+                                props.closeModal()
+                            }}>
+                            <DialogContent>
+                            <TextField
+                                margin="dense"
+                                id="name"
+                                label="Group Channel Name"
+                                fullWidth
+                                onChange={(e) => {
+                                    setNewGroupName(e.target.value)
+                                }}
+                                required
+                            />
+                            <Autocomplete
+                                multiple
+                                options={users}
+                                onChange={(event, newValue, reason) => {
+                                    // switch(reason){
+                                    //     case 'clear':
+                                    //         setGroupForm({...groupForm, members_list: []})
+                                    //     case 'select-option':
+                                    //         let new_member = newValue[newValue.length - 1]
+                                    //         setGroupForm({...groupForm, members_list: [...groupForm.members_list, new_member.user_id]})
+                                    //         console.log(groupForm)
+                                    //     case 'remove-option':
+                                    //         let updated_members = []
+                                    //         for(let n of newValue){
+                                    //             updated_members.push(n.user_id)
+                                    //         } 
+                                    //         setGroupForm({...groupForm, members_list: updated_members})
+                                    // }
+                                    if(reason === 'clear'){
+                                        setNewGroupMembers([])
+                                    }
+                                    else if(reason === 'select-option'){
+                                        let updated_members = []
+                                        for(let n of newValue){
+                                            updated_members.push(n.user_id)
+                                        } 
+                                        setNewGroupMembers(updated_members)
+                                    }
+                                    else{
+                                        let updated_members = []
+                                        for(let n of newValue){
+                                            updated_members.push(n.user_id)
+                                        } 
+                                        setNewGroupMembers(updated_members)
+                                    }
+                                }}
+                                getOptionLabel={(option) => option.display_name}
+                                renderInput={(params) => (
+                                    <TextField
+                                    {...params}
+                                    label='Members'
+                                    placeholder='Members to add to Group'
+                                     />
+                                )}
+                            />
+                            </DialogContent>
+                            <DialogActions>
+                                <Button type='submit' onClick={postForm}>
+                                    Create Group
+                                </Button>
+                            </DialogActions>
+                            </form>
+                            </>
+                        )
+                    }}>
+                        Create Group 
+                        <AddIcon />
+                    </Button>
                 </Drawer>
             <div style={{display: 'flex', flexGrow: 1, justifyContent: 'space-between'}}>
             <AppBar style={{maxHeight: 70, display: 'flex', flexGrow: 1}} >

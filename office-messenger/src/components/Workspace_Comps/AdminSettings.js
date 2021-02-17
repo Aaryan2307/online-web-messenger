@@ -31,7 +31,7 @@ const AdminSettings = (props) => {
           case 0:
             return(
                 <div>
-                hi
+                <h3><b>{`Your Workspace Code is: ${props.ws.code}`}</b></h3>
             </div>
             )
           case 1:

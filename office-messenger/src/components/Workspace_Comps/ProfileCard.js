@@ -16,10 +16,14 @@ const ProfileCard = (props) => {
         <div style={{marginTop: 30, padding: 10}}>Email: {profile.email}</div>
         {!props.self ? (
             <div style={{display: 'flex', flexDirection: 'row', padding: 15, justifyContent: 'space-evenly'}}>
-            <Button variant='outlined' onClick={() => {
+            {!props.showInWidget ? (
+                <Button variant='outlined' onClick={() => {
                 props.setCurrentConvo(profile)
                 props.setWindow('chat')
                 props.closeModal()}}><ChatIcon />Chat</Button>
+            )
+        :
+        null}
             <Button variant='outlined' onClick={() => {window.open(`mailto:${profile.email}`)}}> <EmailIcon />Send an Email</Button>
             <Button variant='outlined' onClick={async () => {
                 let report = window.prompt(`Please enter why you are reporting ${profile.display_name}`)

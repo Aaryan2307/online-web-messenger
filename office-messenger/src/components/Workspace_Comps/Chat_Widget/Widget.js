@@ -1,7 +1,8 @@
 import React, {useState, useEffect, useRef} from 'react'
 import { Box, withTheme, Grid, Input, IconButton, Divider, makeStyles, createStyles, Slide, Typography, Badge, Tooltip } from '@material-ui/core'
 import {connect, useSelector, useDispatch} from 'react-redux'
-import ChatMessage from './ChatMessage'
+import ProfileCard from '../ProfileCard'
+import GroupCard from '../GroupCard'
 import {POST} from '../../../utilities/utils'
 import Thread from './Thread'
 import SendOutlined from '@material-ui/icons/SendOutlined';
@@ -84,8 +85,10 @@ const Widget = (props) => {
 
     const conversation = props.convo
 
-    const chatBlock = props.chats.findIndex(chat => chat.recipient.to == conversation.user_id)
-    //console.log('chatbloc', chatBlock)
+    console.log('chats', props.chats)
+
+    const chatBlock = props.chats.findIndex(chat => chat.recipient.to == (conversation.user_id || conversation.group_id))
+    console.log('chatbloc', chatBlock)
 
     const chat = useSelector((state) => state.chat.messages[chatBlock]);
     console.log('chat', chat)
@@ -133,8 +136,8 @@ const Widget = (props) => {
                 timestamp_ms,
                 reply: {
                     recipient: {
-                        type: 'direct',
-                        to: conversation.user_id,
+                        type: conversation.user_id ? 'direct' : 'group',
+                        to: conversation.user_id ? conversation.user_id : conversation.group_id,
                         from: props.user.user_id,
                         sender_display: props.user.display_name,
                     },
@@ -145,8 +148,8 @@ const Widget = (props) => {
                 type: 'ADD_MESSAGE',
                 message: {
                     recipient: {
-                        type: 'direct',
-                        to: conversation.user_id,
+                        type: conversation.user_id ? 'direct' : 'group',
+                        to: conversation.user_id ? conversation.user_id : conversation.group_id,
                         from: props.user.user_id,
                         sender_display: props.user.display_name,
                     },
@@ -158,8 +161,8 @@ const Widget = (props) => {
                     action: 'send-message',
                     message: post,
                     recipient: {
-                        type: 'direct',
-                        to: conversation.user_id,
+                        type: conversation.user_id ? 'direct' : 'group',
+                        to: conversation.user_id ? conversation.user_id : conversation.group_id,
                         from: props.user.user_id,
                         sender_display: props.user.display_name,
                     }
@@ -180,8 +183,8 @@ const Widget = (props) => {
                 type: 'ADD_MESSAGE',
                 message: {
                     recipient: {
-                        type: 'direct',
-                        to: conversation.user_id,
+                        type: conversation.user_id ? 'direct' : 'group',
+                        to: conversation.user_id ? conversation.user_id : conversation.group_id,
                         from: props.user.user_id,
                         sender_display: props.user.display_name,
                     },
@@ -193,8 +196,8 @@ const Widget = (props) => {
                     action: 'send-message',
                     message: post,
                     recipient: {
-                        type: 'direct',
-                        to: conversation.user_id,
+                        type: conversation.user_id ? 'direct' : 'group',
+                        to: conversation.user_id ? conversation.user_id : conversation.group_id,
                         from: props.user.user_id,
                         sender_display: props.user.display_name,
                     },
@@ -280,7 +283,16 @@ const Widget = (props) => {
             flexDirection="column"
             justifyContent="space-between"
             >
-                <h2>{conversation.display_name}</h2>
+                <h2 style={{cursor: 'pointer'}} onClick={() => {
+                    conversation.user_id ? 
+                    props.openModal(
+                        <ProfileCard profile={conversation} showInWidget />
+                    )
+                    :
+                    props.openModal(
+                        <GroupCard group={conversation} />
+                    )
+                }}><u>{conversation.display_name}</u></h2>
                 <Box className={classes.messageFeed} style={{overflowY: 'auto', behavior: 'smooth'}} flex="1 1 auto">
                 {/* console.log(messages) */}
                 {messages
@@ -444,6 +456,12 @@ const mapDispatchToProps = (dispatch) => {
                 message,
             })
         },
+        openModal: (content) => {
+            dispatch({
+              type: 'OPEN_MODAL',
+              content
+            })
+          },
     }
 
 }
