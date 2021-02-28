@@ -70,9 +70,15 @@ const Portal = (props) => {
             //console.log('user', user_info)
             props.updateUser(user_info)
             //console.log('use', props.user)
-            let w = await fetchWorkspaces()
-            setWorkspaces(w)
-            console.log('workspaces', w)
+            try{
+                let w = await fetchWorkspaces()
+                setWorkspaces(w)
+                console.log('workspaces', w)
+            }
+            catch(e){
+                console.log('now ws to show')
+                setWorkspaces(null)
+            }
             setLoading(false)
         })()
     }, [])
@@ -273,11 +279,17 @@ const Portal = (props) => {
          :
          <div style={{marginTop: 100, display: 'flex', flexDirection: 'row', flexWrap: 'wrap'}}>
          {//mapping the workspaces loaded into the local state
+         workspaces != null?
          workspaces.map((w) => 
          <div style={{padding: 40, display: 'flex', justifyContent: 'space-between', maxWidth: 500, }}> 
              <OrgCard ws={w} />
              </div>
-         )}
+         )
+         :
+         <Typography variant="h3" color="primary">
+             No Workspaces to show... Join one!
+         </Typography>
+         }
          </div>
             
         }

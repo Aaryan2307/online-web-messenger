@@ -2,6 +2,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import { Box, createStyles, makeStyles, withTheme, Typography } from '@material-ui/core';
 
+//mui styling for component
 const useStyles = makeStyles((theme) =>
     createStyles({
         root: {
@@ -16,7 +17,7 @@ const useStyles = makeStyles((theme) =>
         content: {
             overflowWrap: 'break-word',
             textAlign: 'left',
-            width: '80%'
+            width: '100%'
         },
         sender: {
             fontWeight: 'bolder',
@@ -48,6 +49,8 @@ const useStyles = makeStyles((theme) =>
     })
 );
 
+//adds http to url so that onclick actually opens the website
+//if already has, then nothing happens
 const checkHttps = (str) => {
     //ternary statment didnt work with this...
     if (str.startsWith('http://') || str.startsWith('https://')) {
@@ -56,27 +59,18 @@ const checkHttps = (str) => {
     return 'https://' + str;
 };
 
+//takes in the message string, and the links styling from useStyles()
+//returns jsx which highlights and makes any url/email clickable
 const embedRegEx = (messageContent, links) => {
     const urlRegex = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/g;
     const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/
+    //splits each message into its words
     const parts = messageContent.split(' ');
     console.log('parts', parts)
+    //reduce functions iterates through each array item and transforms based on conditions
+    //takes an empty accumulator function and curr is the current item
     const castedParts = parts.reduce((acc, curr) => {
-        // urlRegex.test(curr)
-        //     ? acc.push(
-        //           <a className={links} href={checkHttps(curr)} target="_blank">
-        //               {curr}
-        //           </a>
-        //       )
-        //     : emailRegex.test(curr)
-        //     ? acc.push(
-        //        <a className={links} href={`mailto:${curr}`}>
-        //          {curr}
-        //          </a>
-        //     )
-        //     :
-        //     acc.push(' ', curr, ' ');
-        // return acc;
+        //if a "word" is a url or email, push it to the accumulator enclosed in respective tags
         if(urlRegex.test(curr)){
           acc.push(
             <a className={links} href={checkHttps(curr)} target="_blank">
@@ -91,6 +85,7 @@ const embedRegEx = (messageContent, links) => {
               </a>
          )
         }
+        //if not then just push the normal word
         else{
           acc.push(' ', curr, ' ');
 
@@ -104,6 +99,7 @@ const embedRegEx = (messageContent, links) => {
 const ChatMessage = (props) => {
     console.log('props chatmsg', props)
     const classes = useStyles();
+    //short logic to display date tie month year etc as a timestamp for each message
     let date = new Date(props.timestamp_ms)
     let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     let year = date.getFullYear();
@@ -111,14 +107,17 @@ const ChatMessage = (props) => {
     let dateStamp = date.getDate();
     let hour = date.getHours();
     let min = date.getMinutes();
+    //append a 0 if its a single digit hour or minute
     if(min < 10){
         min = '0' + min
     }
     if(hour < 10){
         hour = '0' + hour
     }
+    //concatenate the datetime info
     let time = dateStamp + ' ' + month + ' ' + year + ' at ' + hour + ':' + min;
 
+    //just jsx formatting and gui for the message, nothing of much notice
     return (
         <Box className={classes.root} display="flex" flexDirection="column" alignItems="flex-start">
             <Box
@@ -145,6 +144,7 @@ const ChatMessage = (props) => {
                 <Typography className={classes.content} variant="body2">
                     {/* {embedRegEx(props.message_content, classes.links)} */}
                     {props.file ? 
+                        //checks if the message is a file and either displays the picture, a download link or just a text msg
                         (props.file.type == 'png') || (props.file.type == 'jpg') ?
                         (
                         <a style={{cursor: 'hover'}} onClick={() => {
@@ -157,6 +157,7 @@ const ChatMessage = (props) => {
                          <a className={classes.links} href={props.file.fileData} target='_blank' download={props.file.fileName}>{props.file.fileName}</a>
                         :
                         (
+                            //checking for the links
                         embedRegEx(props.message_content, classes.links)
                         )
                     }

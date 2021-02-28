@@ -4,6 +4,7 @@ import {POST} from '../../utilities/utils'
 import {connect} from 'react-redux'
 
 const ReportBlock = (props) => {
+    //getting the actual report object from passed in prop
     const report = props.report
 
     const[reportee, setReportee] = useState(null)
@@ -20,6 +21,8 @@ const ReportBlock = (props) => {
         // })
         // setLoaded(true)
         console.log('yo')
+        //on initial render, set the reporter and reportee user accounts correctly
+        //this is from finding the account obj from the user_ids
         if(props.user.user_id === report.to){
             setReportee(props.user)
         }
@@ -28,6 +31,7 @@ const ReportBlock = (props) => {
             setReporter(props.user)
         }
         for(let u of props.users){
+            //finding correct id by iterating through
             if(u.user_id == report.from){
                 setReporter(u)
             }
@@ -36,19 +40,23 @@ const ReportBlock = (props) => {
                 setReportee(u)
             }
         }
+        //set laod flag so it renders corerctly
         setLoaded(true)
 
     }, [])
 
+    //for debugging
     useEffect(() => {
         console.log('to', reportee)
         console.log('from', reporter)
     }, [reportee])
 
     return(
+        //if the account objs are loaded then display this jsx
         loaded ? (
         <div style={{display: 'flex', flexDirection: 'column', borderStyle: 'solid', borderColor: 'red', marginBottom: 30}}>
             <p>From: <a style={{color: 'white', cursor: 'pointer'}} onClick={() =>{
+                //if you click on either of the names it opens up a modal of their profile card
                 props.openModal(
                     <ProfileCard profile={reporter} self={reporter.user_id === props.user.user_id} />
                 )

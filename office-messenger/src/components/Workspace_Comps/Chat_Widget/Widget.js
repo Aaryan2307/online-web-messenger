@@ -18,6 +18,7 @@ import { css, jsx } from '@emotion/core'
 import { Reply } from '@material-ui/icons';
 /**@jsx jsx */
 
+//css for the meessage and inputs initially
 const getStyle = (props) => {
     return css`
         background-color: ${props.theme.palette.secondary.main};
@@ -37,6 +38,9 @@ const getStyle = (props) => {
 
     `
 }
+
+//this is mui css styling for the rest of the component
+//refernced by "className" tag
 
 const useStyles = makeStyles((theme) => {
     createStyles({
@@ -83,39 +87,48 @@ const Widget = (props) => {
     const[renderReply, setRenderReply] = useState(false)
     const[replyTo, setReplyTo] = useState(null)
 
+    //taken conversation from props from render
     const conversation = props.convo
 
     console.log('chats', props.chats)
 
+    //Finding the correct messageblock index for this conversation
     const chatBlock = props.chats.findIndex(chat => chat.recipient.to == (conversation.user_id || conversation.group_id))
     console.log('chatbloc', chatBlock)
 
+    //chat is the messageblock itself
     const chat = useSelector((state) => state.chat.messages[chatBlock]);
     console.log('chat', chat)
 
+    //Generate a set of message from the message stream that are keyed by message_id
     const messages = Array.from(
         new Set(chat.message_stream.map((r) => r.message.message_id))
     ).map((id) => {
+        //returning the messages in order with their respective ids
         return chat.message_stream.find((r) => r.message.message_id === id);
     });
     console.log('messages', messages)
 
     const dispatch = useDispatch()
 
+    //useref for the autoscroll box
     const scrollRef = useRef(null)
+    //initialised value for file upload
     let upload = null
-
+    //if messages change, autoscroll if needed
     useEffect(() => {
         if(messages.length && scrollRef.current){
             scrollRef.current.scrollIntoView()
         }
     }, [messages])
 
+    //another useeffect just for error logging
     useEffect(() => {
         //sendMessage()
         //setRefresh(refresh + 1)
     }, [messages])
 
+    //if user wants to reply, get reply rendering ready
     useEffect(() => {
         setReply(renderReply);
     }, [renderReply]);
@@ -124,16 +137,21 @@ const Widget = (props) => {
         console.log('file state', file)
     }, [file])
 
+    //this is fired when the suer sends any message
     const sendMessage = () => {
+        //creating id and getting the timestamp for the message
         const id = makeId();
         const timestamp_ms = new Date().getTime()
         if(reply){
+            //run this if the new message is a reply for a thread
             const post = {
+                //message content depends on whether its a file or text
                 message_content: file ? (((file.type == 'jpg') || (file.type == 'png')) ? 'image' : file.fileName) : message,
                 type: file ? 'file' : 'text',
                 file_name: file ? file.fileName : null,
                 message_id: id,
                 timestamp_ms,
+                //because its a reply, it will contain this new key to seperate it as a reply
                 reply: {
                     recipient: {
                         type: conversation.user_id ? 'direct' : 'group',
@@ -144,6 +162,7 @@ const Widget = (props) => {
                     message_to: replyTo.message_id,
                 }
             };
+            //dispatch this same object to the global store
             dispatch({
                 type: 'ADD_MESSAGE',
                 message: {
@@ -156,6 +175,7 @@ const Widget = (props) => {
                     message: post
                 },
             });
+            //send this to the websocket as well so the recepieint receives
             props.client.websocket.send(
                 JSON.stringify({
                     action: 'send-message',
@@ -170,6 +190,8 @@ const Widget = (props) => {
             );
         }
         else{
+            //similar logic is filed if its not a reply
+            //but there is a replies key thats initially empty
             const post = {
                 message_content: file ? (((file.type == 'jpg') || (file.type == 'png')) ? file.fileData : file.fileName) : message,
                 type: file ? 'file' : 'text',
@@ -205,11 +227,13 @@ const Widget = (props) => {
                 })
             );
         }
+        //resetting any state hooks that were changed after message is sent
         setReply(false)
         setMessage('')
         setFile(null)
     }
 
+    //callback that toggles replying on and off
     const toggleReply = (m) => {
         setReplyTo(m);
         if (!renderReply) {
@@ -219,12 +243,15 @@ const Widget = (props) => {
         }
     };
 
+    //deleting message procedure
     const deleteMessage = (message) => {
         console.log('message to delete', message)
+        //dispatches delete action to global store
         dispatch({
             type: 'DELETE_MESSAGE',
             message,
         })
+        //sends this across so the recepient deletes on their end as well
         props.client.websocket.send(
             JSON.stringify({
                 action: 'delete-message',
@@ -234,20 +261,25 @@ const Widget = (props) => {
             })
         )
     }
+    
 
+    //opens file dialog when input is clicked
     const openDialog = () => {
         upload.click();
       }
 
+      //clears file once sent
       const clearFile = () => {
         setFile(null)
         upload = null
         setMessage('')
     }
 
+    //reads file that is selected and adds it to the state
     const onFileChange = (e) => {
         let newFile = e.target.files[0]
         console.log('new file', newFile.size)
+        //checks if size fits the websocket limit
         if(newFile.size < 65000){
             let reader = new FileReader()
             reader.onload = (event) => {
@@ -257,6 +289,7 @@ const Widget = (props) => {
                     type: newFile.name.split('.')[1]
                 })
           }
+          //read as data url so easily displayed
           reader.readAsDataURL(newFile)
         }
         else{
@@ -284,6 +317,7 @@ const Widget = (props) => {
             justifyContent="space-between"
             >
                 <h2 style={{cursor: 'pointer'}} onClick={() => {
+                    //if the name of the convo is clicked, it will show group or profile card
                     conversation.user_id ? 
                     props.openModal(
                         <ProfileCard profile={conversation} showInWidget />
@@ -294,9 +328,10 @@ const Widget = (props) => {
                     )
                 }}><u>{conversation.display_name}</u></h2>
                 <Box className={classes.messageFeed} style={{overflowY: 'auto', behavior: 'smooth'}} flex="1 1 auto">
-                {/* console.log(messages) */}
+                {/* mapping messages to thefeed */}
                 {messages
                     ? messages.map((r) => {
+                        //decides what the display name should be for sender
                           console.log('to render', r);
                           let display = ''
                           if(r.recipient.from == props.user.user_id){
@@ -311,6 +346,9 @@ const Widget = (props) => {
                             //     user_display_name={r.recipient.from == props.user.user_id ? 'You' : r.recipient.sender_display}
                             //     key={r.message.message_id}
                             // />
+                            
+                            //This is returning the mapped message in the form of a Thread
+                            //respective properties passed in to use
                             <React.Fragment>
                             <Thread
                                 {...r.message}
@@ -328,7 +366,8 @@ const Widget = (props) => {
                       })
                     : null}
             </Box>
-            {showEmojis? (
+            {//emoji picker component shown if button clicked
+            showEmojis? (
                     <Picker set='google' style={{float: 'right', marginTop: '20%', position: 'absolute',}} perLine={5} onSelect={(emoji) => {
                     setMessage(message + emoji.native)
                 }} />
@@ -401,6 +440,7 @@ const Widget = (props) => {
                 >
                     <EmojiEmotionsIcon />
                 </IconButton>
+                {/* Icon button pertaining to file input */}
                 <IconButton
                     color='primary'
                     className={classes.button}
@@ -413,6 +453,7 @@ const Widget = (props) => {
                     </Badge>
                 </IconButton>
                 {file ?
+                //option to remove set file
                 <Tooltip title={`Remove file?`}>
                 <IconButton
                   color='primary'
