@@ -38,12 +38,15 @@ const Thread = (props) => {
 
     console.log(' thread props', props)
 
+    //in a similar style to widget, replies are taken from a Set
+    //then returning the replies with their message_ids
     const replies = Array.from(
         new Set(props.replies.map((r) => r.message.message_id))
     ).map((id) => {
         return props.replies.find((r) => r.message.message_id === id);
     });
 
+    //same callback for menu component
     const personalHandler = (e) => {
         setAnchorEl(e.currentTarget)
     }
@@ -66,7 +69,7 @@ const Thread = (props) => {
                 <ChatMessage {...props} />
                 <IconButton
                     color="primary"
-                    style={{marginLeft: '65%', position: 'absolute'}}
+                    // style={{marginLeft: '65%', position: 'absolute'}}
                     onClick={personalHandler}
                 >
                     <MoreVertIcon />
@@ -80,10 +83,12 @@ const Thread = (props) => {
                         }}
                         >
                 <MenuItem onClick={() => {
+                    //sets replying which affects widget component
                     props.replying(props)
                     setAnchorEl(null)
                 }}>Reply</MenuItem>
-                {props.sender === props.user.user_id ? <MenuItem onClick={() => {
+                {//user can only delete if it is their message
+                props.sender === props.user.user_id ? <MenuItem onClick={() => {
                     setAnchorEl(null)
                     props.openModal(
                         <>
@@ -93,6 +98,7 @@ const Thread = (props) => {
                         </DialogContent>
                         <DialogActions>
                         <Button onClick={() => {
+                            //modal opening if user wants to delete a message
                             console.log('threads', props.threadToShow)
                             props.delete(props.threadToShow)
                             props.closeModal()
@@ -110,7 +116,8 @@ const Thread = (props) => {
                     display="flex"
                     flexDirection="column"
                 >
-                    {collapse ? (
+                    {//jsx to show or hide collapsable reply msgs
+                    collapse ? (
                         <>
                             <Button
                                 onClick={() => {
@@ -138,7 +145,6 @@ const Thread = (props) => {
                                 Hide Replies
                             </Button>
                             {
-                                // @ts-ignore
                                 replies.map((r) => {
                                     console.log('render', r)
                                     return <ChatMessage {...r.message} user_display_name={r.recipient.from == props.user.user_id ? 'You' : r.recipient.sender_display} key={r.message.message_id} />;

@@ -26,9 +26,12 @@ const ProfileCard = (props) => {
         null}
             <Button variant='outlined' onClick={() => {window.open(`mailto:${profile.email}`)}}> <EmailIcon />Send an Email</Button>
             <Button variant='outlined' onClick={async () => {
+                //open prompt for reporting
                 let report = window.prompt(`Please enter why you are reporting ${profile.display_name}`)
                 console.log('report', report)
+                //if they didnt press cancel or didnt leave input blank
                 if(report !== null){
+                    //create the object and try to post it
                     const reportObj = {
                         from: props.user.user_id,
                         to: profile.user_id,
@@ -37,6 +40,7 @@ const ProfileCard = (props) => {
                     try{
                         await POST('report', {report: reportObj, ws: props.ws.organisation_id})
                         alert('Report has been sent')
+                        //refresh page so report gets loaded
                         window.location.reload(false)
                     }
                     catch(e){

@@ -47,22 +47,28 @@ const workspace = (state = null, action) => {
 
 const chat = (state = {messages: []}, action) => {
     switch(action.type){
+        //if a message is being added to a stream run this case
         case 'ADD_MESSAGE':
             console.log('response from message', action.message)
             console.log('message, struct', state.messages)
             let message_block = null
             let updated_messages = [...state.messages]
             for(let i in updated_messages){
+                //finding the message block through this logic statement
+                //if recipient and type are the same
                 if((updated_messages[i].recipient.type == action.message.recipient.type) && ((updated_messages[i].recipient.to == action.message.recipient.to) || (updated_messages[i].recipient.to == action.message.recipient.from))){
                     console.log('accessing message blocks')
                     message_block = updated_messages[i]
                     console.log('message block', message_block)
                     if(action.message.message.reply){
+                        //run if the new message is a reply
                         let incoming_message = {...action.message}
+                        //find the exact message in the messagestream and append to the replies[] array
                         const reply_msg_index = message_block.message_stream.findIndex((item) => {
                             return item.message.message_id === incoming_message.message.reply.message_to;
                         });
                         console.log('reply', reply_msg_index)
+                        //pushing replies
                         message_block.message_stream[reply_msg_index].message.replies.push(incoming_message)
 
                         updated_messages[i] = message_block
@@ -76,6 +82,7 @@ const chat = (state = {messages: []}, action) => {
                     //     }
                     // }
                     else{
+                        //if not just find the correct message stream and append the whole message object
                         let updated_message_stream = [...message_block.message_stream]
                         let incoming_message = {...action.message}
                         console.log('incoming', incoming_message)
@@ -90,9 +97,11 @@ const chat = (state = {messages: []}, action) => {
                 }
             }
             console.log('new stream', updated_messages)
+            //return the new message state
             return{
                 messages: updated_messages,
             }
+            //setting the messages that were passed in
         case 'SET_MESSAGES': {
             return{
                 messages: action.messages
@@ -102,6 +111,7 @@ const chat = (state = {messages: []}, action) => {
             let msg_block = null
             let updated_with_delete = [...state.messages]
             for(let i in updated_with_delete){
+                //finding the message block to remove message object
                 if((updated_with_delete[i].recipient.type == action.message.recipient.type) && ((updated_with_delete[i].recipient.to == action.message.recipient.to) || (updated_with_delete[i].recipient.to == action.message.recipient.from))){
                     console.log('accessing message blocks')
                     msg_block = updated_with_delete[i]
@@ -116,10 +126,13 @@ const chat = (state = {messages: []}, action) => {
                     // }
                     let updated_message_stream = [...msg_block.message_stream]
                     let message_to_delete = {...action.message}
+                    //found message object where we need to delete
                     console.log('deleting', message_to_delete)
+                    //finding the index of the message in stream we need to delete
                     let delete_in_stream = updated_message_stream.findIndex(m => m.message.message_id === message_to_delete.message.message_id)
+                    //removed the object 
                     updated_message_stream.splice(delete_in_stream, 1)
-
+                    //setting new updated variables
                     msg_block = {...msg_block, message_stream: updated_message_stream}
                     updated_with_delete[i] = msg_block
 

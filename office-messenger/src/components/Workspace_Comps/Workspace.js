@@ -25,6 +25,8 @@ const useStyles = makeStyles((theme) => (
 ))
 
 const Workspace = (props) => { 
+
+    //these are hooks to be kept track of, they do as the name entails
     const[wsLoaded, setWsLoaded] = useState(false)
     const[users, setUsers] = useState([])
     const[groups, setGroups] = useState([])
@@ -39,29 +41,39 @@ const Workspace = (props) => {
     const[newGroupName, setNewGroupName] = useState('')
     const[newGroupMembers, setNewGroupMembers] = useState([])
 
+    //message handlers to pass into client
     const messageHandlers = {
+    //if the user recieves a message, add this to the global state where it will be dealt with
         'send-message': (response) => {
             props.addMessage(response)
         },
+        //same for deleting a message
         'delete-message': (response) => {
             props.deleteMessage(response)
         },
+        //what happens if someone is now online?
         'online-status': (statusMessage) => {
             console.log('temp for users', props.ws)
+            //if the workspace is loaded in the global state
             if(props.ws){
                 let userToUpdate = null
                 let tempArr = users
+                //iterate through users to check who sent the status update
                 for(let i in tempArr){
                     if(statusMessage.user_id === tempArr[i].user_id){
                         console.log('status', statusMessage)
                         console.log(tempArr[i])
+                        //set their status accordingly
                         userToUpdate = {...tempArr[i], status: statusMessage.status}
+                        //update this in the temp array
                         tempArr[i] = userToUpdate
                         break;
                     }
                 }
+                //filter out the current user, only want others not yourself
                 tempArr = tempArr.filter(n => n.user_id !== props.user.user_id)
                 //console.log('temp', tempArr)
+                //set for rerender
                 setUsers(tempArr)
                 setStatusChange(statusChange + 1)
             }
@@ -74,9 +86,11 @@ const Workspace = (props) => {
     const classes = useStyles()
 
     useEffect(() => {
+        //if there is a new group creation run this
         if(submitGroup){
             console.log('group form', newGroupMembers)
             console.log('name', newGroupName)
+            //post new group to db and handle error
             POST('group-channel', {name: newGroupName, members_list: newGroupMembers, ws: props.ws.organisation_id}).then((r) => {
                 console.log('success')
                 alert('Group channel successfully created')
@@ -118,6 +132,7 @@ const Workspace = (props) => {
     useEffect(() => {
         //if the workspace has loaded, grab all of the workspace members through the corresponding lambda
         if(wsLoaded && props.user && props.ws){
+            //old algo
             let list = []
             // for(let i of props.ws.members_list){
             //     POST('given-user', {id: i}).then((u) => {
@@ -129,20 +144,28 @@ const Workspace = (props) => {
             //         //setUsersLoaded(true)
             //     })
             // }
+
+            //now we return a whole list instead of iterating and posting through each loop
             POST('given-user', {id_list: props.ws.members_list, type: 'user'}).then((u) => {
                 let otherUsers = []
                 for(let user of u){
+                    //iterate through returned list and add all apart from self
                     if(user.user_id != props.user.user_id){
                         otherUsers.push(user)
                     }
                 }
+                //set this to the local and global state
+                //set usersLoaded flag
                 setUsers(otherUsers)
                 setUsersLoaded(true)
                 props.setWorkspace({...props.ws, members_list: otherUsers})
             })
 
+            //Returning the groups in the orgnisation
+            //yes i know its a POST but I need to pass a body to the backend
             POST('given-user', {id_list: props.ws.groups, type: 'group'}).then((g) => {
                 console.log('org groups', g)
+                //same algo but instead just pushing through groups that user is a part of
                 let users_groups = []
                 for(let group of g){
                     if(group.members_list.includes(props.user.user_id)){
@@ -155,6 +178,7 @@ const Workspace = (props) => {
         }
     }, [wsLoaded])
 
+    //no functionality, just for error logging, will be roemoved when project is finished
     useEffect(() => {
         console.log('users in ws', users)
         if(props.ws){
@@ -167,25 +191,33 @@ const Workspace = (props) => {
         }
     },[users])
 
+    //run this once we have the users
     useEffect(() => {
         if(usersLoaded && groups.length){
+            //instantiate new client with following params
             let client = new Client(props.user.user_id, props.ws.organisation_id, messageHandlers)
+            //set this to the global state for use across app
             props.setClient(client)
             if(users.length){
+                //getting current people online to set their status locally
                 POST('get-connections', {ws: props.ws.organisation_id}).then((conn) => {
                     console.log('conn', conn)
+                    //mapping online users from connections
                     let online_users = conn.map(value => value.user_id)
                     let updated_users = users
                     console.log('online', online_users)
                     for(let u in updated_users){
+                        //changing status locally
                         if(online_users.includes(updated_users[u].user_id)){
                             updated_users[u] = {...updated_users[u], status: 'online'}
                         }
                     }
                     console.log('updated', updated_users)
+                    //setting this to hooks
                     setUsers(updated_users)
                     setStatusChange(statusChange + 1)
                 })
+                //setting the global state with the initial message_blocks
                 let ws_messages = []
                 for(let u of users){
                     ws_messages.push({
@@ -206,7 +238,10 @@ const Workspace = (props) => {
                     })
                 }
                 props.setMessages(ws_messages)
+                //hash to query missed-messages table
                 const missedMessageHash = sha256(props.user.user_id + props.ws.organisation_id).toString()
+                //query through post which will get and now set the missed messages locally
+                //these are deleted on the backend function
                 POST('missed-messages', {id: missedMessageHash}).then((m) => {
                     console.log('m', m)
                     if(m){
@@ -219,9 +254,11 @@ const Workspace = (props) => {
         }
     },[usersLoaded])
 
+    //gets the correct panel alike to Login.js
     const getWindow = () => {
         switch(windowPanel){
             case 'chat':
+                //widget takes in the conversation the widget shows
                 return(
                     <Widget convo={currentConvo} />
                 )
@@ -236,13 +273,17 @@ const Workspace = (props) => {
         }
     }
 
+    //postform handler which redirects to useState
     const postForm = () => {
         setSubmitGroup(true)
     }
 
+    //callback handler for <Menu /> component
     const personalHandler = (e) => {
         setAnchorEl(e.currentTarget)
     }
+
+    //logic explained in docks, allows filter search for dm and groups
     let filteredDms = users.filter((user) => {
         return user.display_name.toLowerCase().indexOf(directSearch.toLowerCase()) !== -1
     })
@@ -250,7 +291,8 @@ const Workspace = (props) => {
         return group.name.toLowerCase().indexOf(groupSearch.toLowerCase()) !== -1
     })
     return(
-        //return corresponding jsx 
+        //return corresponding jsx
+        //only if users and ws are GOTten
         wsLoaded && usersLoaded ?
         <div style={{overflowY: 'hidden'}}>
              <Drawer
@@ -266,6 +308,7 @@ const Workspace = (props) => {
                 <ListSubheader>Direct Messages</ListSubheader>
                 <TextField
                     onChange={(e) => {
+                        //textinput for dm filter
                         setDirectSearch(e.target.value)
                     }}
                     label='Search for a DM'
@@ -279,10 +322,13 @@ const Workspace = (props) => {
                 />
                 <div style={{overflowY: 'scroll', maxHeight: '85%'}}>
                     {
+                    //mapping out the Dms in the scrollbox
                     filteredDms.map((u) => {
                         return(
+                            //Shows the display name and online status as a ListItem
                             <ListItem style={{textOverflow: 'ellipsis', fontSize: 13}} button
                             onClick={(e) => {
+                                //if its clicked set the window to their chat
                                 setWindow('chat')
                                 setCurrentConvo(u)
                             }}>
@@ -310,6 +356,8 @@ const Workspace = (props) => {
                 />
                 <div style={{overflowY: 'scroll', maxHeight: '80%'}}>
                 {
+                    //same logic as Dms but with a group instead of user
+                    //and no online status obvously
                     filteredGroups.map((g) => {
                         return(
                             <ListItem style={{textOverflow: 'ellipsis', fontSize: 13}} button
@@ -326,6 +374,8 @@ const Workspace = (props) => {
                     <Divider />
                     <Button style={{marginTop: 30}} onClick={() => {
                         props.openModal(
+                            //this modal is opened if user clicks Create Group btn
+                            //form with group info
                             <>
                             <DialogTitle>Group Creation</DialogTitle>
                             <form onSubmit={(e) => {
@@ -361,12 +411,17 @@ const Workspace = (props) => {
                                     //         } 
                                     //         setGroupForm({...groupForm, members_list: updated_members})
                                     // }
+                                    
+                                    //autocomplete as in OrgCreator but less complicated
+                                    //adds or sets to the newValue param whenever there is a change
+                                    //sets this new updated list to the hook state
                                     if(reason === 'clear'){
                                         setNewGroupMembers([])
                                     }
                                     else if(reason === 'select-option'){
                                         let updated_members = []
                                         for(let n of newValue){
+                                            //we only want to push user_ids
                                             updated_members.push(n.user_id)
                                         } 
                                         setNewGroupMembers(updated_members)
@@ -403,11 +458,12 @@ const Workspace = (props) => {
                     </Button>
                 </Drawer>
             <div style={{display: 'flex', flexGrow: 1, justifyContent: 'space-between'}}>
-            <AppBar style={{maxHeight: 70, display: 'flex', flexGrow: 1}} >
-                <Toolbar>
-                <Typography variant='h5' flexGrow={1} style={{marginLeft: 150}}>
+            <AppBar style={{maxHeight: 70, display: 'flex', flexGrow: 1, }} >
+                <Toolbar style={{display: 'flex', justifyContent: 'space-between'}}>
+                <Typography variant='h5' style={{marginLeft: 150, maxWidth: 500}}>
                 <b>{props.ws.name}</b>
                 </Typography>
+                <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-evenly'}}>
                 <Button style={{marginLeft: 50, marginRight: 20}} onClick={() => {
                     setWindow('contacts')
                     //props.setWorkspace({...props.ws, members_list: users})
@@ -425,7 +481,11 @@ const Workspace = (props) => {
                     )
                 :
                 null}
-                <Avatar alt='user_dp' src={avatar} style={{ height: 50, width: 50, cursor: 'pointer', marginLeft: '70%'}}
+                <Button>
+                    Notifications
+                </Button>
+                </div>
+                <Avatar alt='user_dp' src={avatar} style={{ height: 50, width: 50, cursor: 'pointer',}}
                 onClick={personalHandler}/>
                 <Menu
                 anchorEl={anchorEl}
@@ -455,6 +515,8 @@ const Workspace = (props) => {
     )
 }
 
+//regular redux connect functions,
+//explained in docs
 const mapStateToProps = (state) => {
     return {
         ws: state.workspace,

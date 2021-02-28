@@ -35,6 +35,7 @@ const AdminSettings = (props) => {
             </div>
             )
           case 1:
+            //if there are reports to show then map them otherwise display appropriate message
             return(
             props.ws.reports ?
               <div>
@@ -98,6 +99,7 @@ const AdminSettings = (props) => {
 
 const mapStateToProps = (state) => {
     return {
+        //get workspace and user information from loaded global state
         ws: state.workspace,
         user: state.user
     }

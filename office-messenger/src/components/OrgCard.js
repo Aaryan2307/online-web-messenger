@@ -25,9 +25,9 @@ const OrgCard = (props) => {
     //If a workspace is set from the async redux state update open a new window to enter that workspace
    useEffect(() => {
     console.log('word', props.workspace)
-    if(props.workspace){
-        window.open(`/workspace`)
-    }
+    // if(props.workspace){
+    //     window.open(`/workspace`)
+    // }
    }, [props.workspace]) 
 
    //simple dictionary that will show an icon depending on the type of organisation
