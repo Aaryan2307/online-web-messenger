@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import {Button} from '@material-ui/core'
 import ProfileCard from './ProfileCard'
 import {POST} from '../../utilities/utils'
 import {connect} from 'react-redux'
@@ -67,6 +68,10 @@ const ReportBlock = (props) => {
                 )
             }}><u>{reportee.display_name}</u></a></p>
             <p>Report: {report.msg}</p>
+            {/* <Button variant='outlined' color='primary' style={{width: 100, margin: 'auto',}} onClick={() => {
+                alert('Report is now resolved')
+                window.location.reload(false)
+            }}>Remove</Button> */}
             </div>)
             :
             null

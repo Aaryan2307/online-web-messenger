@@ -12,7 +12,7 @@ const ProfileCard = (props) => {
     return(
         <div style={{display: 'flex', flexDirection:'column', justifyContent: 'center'}}>
         <DialogTitle><b>{profile.display_name}</b></DialogTitle>
-        <Avatar src={avatar} style={{height: 150, width: 150, margin: '0 auto' }} />
+        <Avatar src={profile.display_picture ? profile.display_picture : avatar} style={{height: 150, width: 150, margin: '0 auto' }} />
         <div style={{marginTop: 30, padding: 10}}>Email: {profile.email}</div>
         {!props.self ? (
             <div style={{display: 'flex', flexDirection: 'row', padding: 15, justifyContent: 'space-evenly'}}>

@@ -1,10 +1,11 @@
 import React, {useState, useEffect, useRef} from 'react'
-import { Box, withTheme, Grid, Input, IconButton, Divider, makeStyles, createStyles, Slide, Typography, Badge, Tooltip } from '@material-ui/core'
+import { Box, withTheme, Grid, Input, IconButton, Divider, makeStyles, createStyles, Slide, Typography, Badge, Tooltip, Avatar } from '@material-ui/core'
 import {connect, useSelector, useDispatch} from 'react-redux'
 import ProfileCard from '../ProfileCard'
 import GroupCard from '../GroupCard'
 import {POST} from '../../../utilities/utils'
 import Thread from './Thread'
+import avatar from '../../../media/no_profile.png'
 import SendOutlined from '@material-ui/icons/SendOutlined';
 import SendIcon from '@material-ui/icons/Send';
 import AttachFileIcon from '@material-ui/icons/AttachFile';
@@ -62,6 +63,7 @@ const useStyles = makeStyles((theme) => {
             '&::-webkit-scrollbar-thumb:hover': {
                 background: '#555',
             },
+            zIndex: 1,
         },
         replyBox: {
             width: '90%',
@@ -121,6 +123,24 @@ const Widget = (props) => {
             scrollRef.current.scrollIntoView()
         }
     }, [messages])
+
+    useEffect(() => {
+        console.log('convo', conversation)
+        const notifDeletionInfo = {
+            type: conversation.user_id ? 'direct' : 'group',
+            id: conversation.user_id ? conversation.user_id : conversation.group_id
+        }
+        props.deleteNotifs(notifDeletionInfo)
+    }, [messages])
+
+    // useEffect(() => {
+    //     const notifDeletionInfo = {
+    //         type: conversation.user_id ? 'direct' : 'group',
+    //         id: conversation.user_id ? conversation.user_id : conversation.group_id
+    //     }
+    //     props.deleteNotifs(notifDeletionInfo)
+    // }, [])
+
 
     //another useeffect just for error logging
     useEffect(() => {
@@ -316,6 +336,12 @@ const Widget = (props) => {
             flexDirection="column"
             justifyContent="space-between"
             >
+                <div style={{display: 'flex', flexDirection: 'row', margin: 'auto'}}>
+                {conversation.user_id ? (
+                    <Avatar alt='user_dp' src={conversation.display_picture ? conversation.display_picture : avatar} style={{ height: 50, width: 50, cursor: 'pointer',}}/>
+                )
+            :
+            null}
                 <h2 style={{cursor: 'pointer'}} onClick={() => {
                     //if the name of the convo is clicked, it will show group or profile card
                     conversation.user_id ? 
@@ -327,6 +353,7 @@ const Widget = (props) => {
                         <GroupCard group={conversation} />
                     )
                 }}><u>{conversation.display_name}</u></h2>
+                </div>
                 <Box className={classes.messageFeed} style={{overflowY: 'auto', behavior: 'smooth'}} flex="1 1 auto">
                 {/* mapping messages to thefeed */}
                 {messages
@@ -503,6 +530,12 @@ const mapDispatchToProps = (dispatch) => {
               content
             })
           },
+          deleteNotifs: (convo) => {
+              dispatch({
+                  type: 'DELETE_NOTIFS',
+                  convo,
+              })
+          }
     }
 
 }
