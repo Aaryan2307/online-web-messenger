@@ -1,17 +1,20 @@
 import React, {useEffect, useState,} from 'react'
 import {connect, useSelector, useDispatch} from 'react-redux'
-import {Drawer, List, Divider, ListItem, AppBar, Typography, DialogActions, DialogContent, ListSubheader, Avatar, Menu, MenuItem, Button, makeStyles, withTheme, Toolbar, TextField, InputAdornment, DialogTitle} from '@material-ui/core'
+import {Drawer, List, Divider, ListItem, AppBar, Typography, DialogActions, DialogContent, ListSubheader, Avatar, Menu, MenuItem, Button, makeStyles, withTheme, Toolbar, TextField, InputAdornment, DialogTitle, Badge, Switch} from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import SearchIcon from '@material-ui/icons/Search';
 import AddIcon from '@material-ui/icons/Add';
 import sha256 from 'crypto-js/sha256'
 import { GET, POST } from '../../utilities/utils'
-import {Link, Switch, Route} from 'react-router-dom'
+import {Link, Route} from 'react-router-dom'
 import avatar from '../../media/no_profile.png'
 import Contacts from './Contacts'
 import Widget from './Chat_Widget/Widget'
 import AdminSettings from './AdminSettings'
+import NotifCentre from './NotifCentre'
 import Client from './Client'
+import { RepeatOneSharp } from '@material-ui/icons';
+import ProfileCard from './ProfileCard';
 // import classes from '*.module.css'
 
 
@@ -46,6 +49,7 @@ const Workspace = (props) => {
     //if the user recieves a message, add this to the global state where it will be dealt with
         'send-message': (response) => {
             props.addMessage(response)
+            props.addNotif(response)
         },
         //same for deleting a message
         'delete-message': (response) => {
@@ -91,14 +95,19 @@ const Workspace = (props) => {
             console.log('group form', newGroupMembers)
             console.log('name', newGroupName)
             //post new group to db and handle error
-            POST('group-channel', {name: newGroupName, members_list: newGroupMembers, ws: props.ws.organisation_id}).then((r) => {
-                console.log('success')
-                alert('Group channel successfully created')
-                window.location.reload()
-            })
-            .catch((err) => {
-                alert('Group was not able to be created. Please try again')
-            })
+            if(newGroupName !== 'General'){
+                POST('group-channel', {name: newGroupName, members_list: newGroupMembers, ws: props.ws.organisation_id}).then((r) => {
+                    console.log('success')
+                    alert('Group channel successfully created')
+                    window.location.reload()
+                })
+                .catch((err) => {
+                    alert('Group was not able to be created. Please try again')
+                })
+            }
+            else{
+                alert('Cannot create another General Channel')
+            }
         }
         setSubmitGroup(false)
     }, [submitGroup])
@@ -147,6 +156,7 @@ const Workspace = (props) => {
 
             //now we return a whole list instead of iterating and posting through each loop
             POST('given-user', {id_list: props.ws.members_list, type: 'user'}).then((u) => {
+                console.log('uuu',u)
                 let otherUsers = []
                 for(let user of u){
                     //iterate through returned list and add all apart from self
@@ -159,6 +169,9 @@ const Workspace = (props) => {
                 setUsers(otherUsers)
                 setUsersLoaded(true)
                 props.setWorkspace({...props.ws, members_list: otherUsers})
+            })
+            .catch((err) => {
+                console.log('error with getting users', err)
             })
 
             //Returning the groups in the orgnisation
@@ -193,64 +206,64 @@ const Workspace = (props) => {
 
     //run this once we have the users
     useEffect(() => {
-        if(usersLoaded && groups.length){
+        if((usersLoaded && groups.length)){
+            console.log('user laoded?', usersLoaded)
             //instantiate new client with following params
             let client = new Client(props.user.user_id, props.ws.organisation_id, messageHandlers)
             //set this to the global state for use across app
             props.setClient(client)
-            if(users.length){
-                //getting current people online to set their status locally
-                POST('get-connections', {ws: props.ws.organisation_id}).then((conn) => {
-                    console.log('conn', conn)
-                    //mapping online users from connections
-                    let online_users = conn.map(value => value.user_id)
-                    let updated_users = users
-                    console.log('online', online_users)
-                    for(let u in updated_users){
-                        //changing status locally
-                        if(online_users.includes(updated_users[u].user_id)){
-                            updated_users[u] = {...updated_users[u], status: 'online'}
-                        }
+            //getting current people online to set their status locally
+            POST('get-connections', {ws: props.ws.organisation_id}).then((conn) => {
+                console.log('conn', conn)
+                //mapping online users from connections
+                let online_users = conn.map(value => value.user_id)
+                let updated_users = users
+                console.log('online', online_users)
+                for(let u in updated_users){
+                    //changing status locally
+                    if(online_users.includes(updated_users[u].user_id)){
+                        updated_users[u] = {...updated_users[u], status: 'online'}
                     }
-                    console.log('updated', updated_users)
-                    //setting this to hooks
-                    setUsers(updated_users)
-                    setStatusChange(statusChange + 1)
-                })
-                //setting the global state with the initial message_blocks
-                let ws_messages = []
-                for(let u of users){
-                    ws_messages.push({
-                        recipient: {
-                            type: 'direct',
-                            to: u.user_id
-                        },
-                        message_stream: []
-                    })
                 }
-                for(let g of groups){
-                    ws_messages.push({
-                        recipient: {
-                            type: 'group',
-                            to: g.group_id
-                        },
-                        message_stream: []
-                    })
-                }
-                props.setMessages(ws_messages)
-                //hash to query missed-messages table
-                const missedMessageHash = sha256(props.user.user_id + props.ws.organisation_id).toString()
-                //query through post which will get and now set the missed messages locally
-                //these are deleted on the backend function
-                POST('missed-messages', {id: missedMessageHash}).then((m) => {
-                    console.log('m', m)
-                    if(m){
-                        for(let message of m){
-                            props.addMessage(message)
-                        }
-                    }
+                console.log('updated', updated_users)
+                //setting this to hooks
+                setUsers(updated_users)
+                setStatusChange(statusChange + 1)
+            })
+            //setting the global state with the initial message_blocks
+            let ws_messages = []
+            for(let u of users){
+                ws_messages.push({
+                    recipient: {
+                        type: 'direct',
+                        to: u.user_id
+                    },
+                    message_stream: []
                 })
             }
+            for(let g of groups){
+                ws_messages.push({
+                    recipient: {
+                        type: 'group',
+                        to: g.group_id
+                    },
+                    message_stream: []
+                })
+            }
+            props.setMessages(ws_messages)
+            //hash to query missed-messages table
+            const missedMessageHash = sha256(props.user.user_id + props.ws.organisation_id).toString()
+            //query through post which will get and now set the missed messages locally
+            //these are deleted on the backend function
+            POST('missed-messages', {id: missedMessageHash}).then((m) => {
+                console.log('m', m)
+                if(m){
+                    for(let message of m){
+                        props.addMessage(message)
+                        props.addNotif(message)
+                    }
+                }
+            })
         }
     },[usersLoaded])
 
@@ -269,6 +282,10 @@ const Workspace = (props) => {
             case 'admin_settings':
                 return(
                     <AdminSettings users={users} />
+                )
+            case 'notifications':
+                return(
+                    <NotifCentre setWindow={setWindow} setCurrentConvo={setCurrentConvo} groups={groups} users={users} />
                 ) 
         }
     }
@@ -293,7 +310,7 @@ const Workspace = (props) => {
     return(
         //return corresponding jsx
         //only if users and ws are GOTten
-        wsLoaded && usersLoaded ?
+        wsLoaded && usersLoaded && groups.length ?
         <div style={{overflowY: 'hidden'}}>
              <Drawer
             variant='permanent'
@@ -332,7 +349,9 @@ const Workspace = (props) => {
                                 setWindow('chat')
                                 setCurrentConvo(u)
                             }}>
+                            <Badge invisible={props.notifs.find(n => (n.recipient.from == u.user_id) && (n.recipient.type == 'direct')) == undefined} color='secondary' variant='dot'>
                             {u.display_name} - <b>{u.status ? u.status : 'offline'}</b>
+                            </Badge>
                             </ListItem>
                         )
                     })}
@@ -365,7 +384,9 @@ const Workspace = (props) => {
                                 setWindow('chat')
                                 setCurrentConvo({...g, display_name: g.name})
                             }}>
+                            <Badge invisible={props.notifs.find(n => n.recipient.to == g.group_id) == undefined} color='secondary' variant='dot'>
                             {g.name}
+                            </Badge>
                             </ListItem>
                         )
                     })}
@@ -481,11 +502,20 @@ const Workspace = (props) => {
                     )
                 :
                 null}
-                <Button>
+                <Button onClick={() => {
+                    if(props.notif_on){
+                        setWindow('notifications')
+                    }
+                    else{
+                        alert('Turn your notifications on to view them')
+                    }
+                }}>
+                    <Badge badgeContent={props.notifs.length} max={10} color='secondary'>
                     Notifications
+                    </Badge>
                 </Button>
                 </div>
-                <Avatar alt='user_dp' src={avatar} style={{ height: 50, width: 50, cursor: 'pointer',}}
+                <Avatar alt='user_dp' src={props.user.display_picture ? props.user.display_picture : avatar} style={{ height: 50, width: 50, cursor: 'pointer',}}
                 onClick={personalHandler}/>
                 <Menu
                 anchorEl={anchorEl}
@@ -495,12 +525,22 @@ const Workspace = (props) => {
                     setAnchorEl(null)
                 }}
                 >
-                <MenuItem>My Profile</MenuItem>
+                <MenuItem onClick={() => {
+                    props.openModal(
+                        <ProfileCard self profile={props.user} />
+                    )
+                }}>My Profile</MenuItem>
                 <MenuItem onClick={() => {
                     window.opener = null;
                     window.open('', '_self');
                     window.close();
                 }}>Exit Workspace</MenuItem>
+                <MenuItem>
+                Notifications?
+                <Switch checked={props.notif_on} onChange={() => {
+                    props.toggleNotif()
+                }} />
+                </MenuItem>
                 </Menu>
                 </Toolbar>
             </AppBar>
@@ -521,7 +561,9 @@ const mapStateToProps = (state) => {
     return {
         ws: state.workspace,
         user: state.user,
-        client: state.client
+        client: state.client,
+        notifs: state.notifications.notifs,
+        notif_on: state.notifications.on
     }
 }
 const mapDispatchToProps = (dispatch) => {
@@ -550,6 +592,12 @@ const mapDispatchToProps = (dispatch) => {
                 message,
             })
         },
+        addNotif: (message) => {
+            dispatch({
+                type: 'ADD_NOTIF',
+                message
+            })
+        },
         deleteMessage: (message) => {
             dispatch({
                 type: 'DELETE_MESSAGE',
@@ -560,6 +608,11 @@ const mapDispatchToProps = (dispatch) => {
             dispatch({
                 type: 'SET_MESSAGES',
                 messages,
+            })
+        },
+        toggleNotif: () => {
+            dispatch({
+                type: 'TOGGLE_NOTIF'
             })
         },
         closeModal: () => {

@@ -17,6 +17,10 @@ export default class Client {
         )
         //Whenever the websocket recieves a message, it runs the handlemessage function I have written
         this.websocket.onmessage = this.handleMessage
+        this.websocket.onclose = () => {
+            alert('You have been disconnected. Please refresh the page to reconnect')
+        }
+
     }
 
     //handles an incoming message according to message handlers passed in on object creation

@@ -59,14 +59,25 @@ const checkHttps = (str) => {
     return 'https://' + str;
 };
 
+const checkForBadWord = (list, word) => {
+    console.log('word', word)
+    console.log(word.includes(list[0]))
+    for(let i of list){
+        if(word.includes(i)){
+            return true
+        }
+    }
+            return false
+}
+
 //takes in the message string, and the links styling from useStyles()
 //returns jsx which highlights and makes any url/email clickable
-const embedRegEx = (messageContent, links) => {
+const embedRegExAndBlacklist = (messageContent, links, props) => {
     const urlRegex = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/g;
     const emailRegex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/
     //splits each message into its words
     const parts = messageContent.split(' ');
-    console.log('parts', parts)
+    //console.log('parts', parts)
     //reduce functions iterates through each array item and transforms based on conditions
     //takes an empty accumulator function and curr is the current item
     const castedParts = parts.reduce((acc, curr) => {
@@ -85,14 +96,20 @@ const embedRegEx = (messageContent, links) => {
               </a>
          )
         }
+        else if(props.ws.blacklisted_words && checkForBadWord(props.ws.blacklisted_words, curr)){
+            //console.log('censoring word')
+            let censor = curr.replace(/./g, '*');
+            acc.push(censor)
+        }
         //if not then just push the normal word
         else{
+        //console.log('bad words', props.ws.blacklisted_words)
           acc.push(' ', curr, ' ');
 
         }
         return acc;
     }, []);
-    console.log('casted', castedParts)
+    //console.log('casted', castedParts)
     return castedParts;
 };
 
@@ -158,13 +175,19 @@ const ChatMessage = (props) => {
                         :
                         (
                             //checking for the links
-                        embedRegEx(props.message_content, classes.links)
+                        embedRegExAndBlacklist(props.message_content, classes.links, props)
                         )
                     }
                 </Typography>
             </Box>
         </Box>
     );
+}
+
+const mapStateToProps = (state) => {
+    return {
+        ws: state.workspace
+    }
 }
 
 const mapDispatchToProps = (dispatch) => {
@@ -178,4 +201,4 @@ const mapDispatchToProps = (dispatch) => {
     }
   }
 
-export default connect(null, mapDispatchToProps)(withTheme(ChatMessage))
+export default connect(mapStateToProps, mapDispatchToProps)(withTheme(ChatMessage))

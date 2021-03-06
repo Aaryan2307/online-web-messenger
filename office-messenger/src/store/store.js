@@ -45,6 +45,78 @@ const workspace = (state = null, action) => {
     }
 }
 
+const notifications = (state = {notifs: [], on: true, buffer: []}, action) => {
+    switch(action.type){
+        case 'ADD_NOTIF':
+            let updated_notifs = [...state.notifs]
+            const incoming_notif = {...action.message}
+            let buffer_notifs = [...state.buffer]
+            buffer_notifs.unshift(incoming_notif)
+            if(state.on){
+                updated_notifs.unshift(incoming_notif)
+            }
+            return{
+                ...state,
+                notifs: updated_notifs,
+                buffer: buffer_notifs
+            }
+        case 'DELETE_NOTIFS':
+            let filtered_notifs = []
+            if(state.on){
+                filtered_notifs = [...state.notifs]
+            }
+            else{
+                filtered_notifs = [...state.buffer]
+            }
+            if(filtered_notifs.length){
+                filtered_notifs = filtered_notifs.filter((notif) => {
+                    return (notif.recipient.type != action.convo.type ||
+                    (action.convo.type == 'group' ? (notif.recipient.to != action.convo.id) : (notif.recipient.from != action.convo.id)))
+    
+                })
+                console.log('action', action.convo)
+                console.log('filter', filtered_notifs)
+            }
+            return{
+                ...state,
+                notifs: state.on ? filtered_notifs : [...state.notifs],
+                buffer: filtered_notifs
+            }
+        case 'TOGGLE_NOTIF':
+            let buffer_update = [...state.buffer]
+            if(!state.on == true){
+                return{
+                    ...state,
+                    notifs: buffer_update,
+                    buffer: [],
+                    on: !state.on
+                }
+            }
+            buffer_update = [...state.notifs]
+            return {
+                ...state,
+                notifs: [],
+                on: !state.on,
+                buffer: buffer_update
+            }
+        case 'CLEAR_NOTIFS':
+            return{
+                ...state,
+                notifs: [],
+                buffer: []
+            }
+        default: 
+            return state;
+    }
+}
+
+// const inWorkspace = (state = {online: false}, action) => {
+//     switch(action.type){
+//         case 'TOGGLE_JOIN':
+//             console.log(state.online)
+//     }
+// }
+
 const chat = (state = {messages: []}, action) => {
     switch(action.type){
         //if a message is being added to a stream run this case
@@ -103,6 +175,7 @@ const chat = (state = {messages: []}, action) => {
             }
             //setting the messages that were passed in
         case 'SET_MESSAGES': {
+            console.log('setting', action.messages)
             return{
                 messages: action.messages
             }
@@ -158,6 +231,6 @@ const client = (client = null, action) => {
 }
 
 //this is the "global store" from which the global state can be accessed and altered through dispatches
-const store = createStore(combineReducers({modal, user, workspace, chat, client}))
+const store = createStore(combineReducers({modal, user, workspace, chat, client, notifications}))
 
 export default store

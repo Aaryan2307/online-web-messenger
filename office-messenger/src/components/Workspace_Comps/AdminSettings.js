@@ -5,6 +5,8 @@ import ReportIcon from '@material-ui/icons/Report';
 import ReportOutlinedIcon from '@material-ui/icons/ReportOutlined';
 import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplicationsOutlined';
 import ReportBlock from './ReportBlock'
+import WordBlacklist from './WordBlacklist'
+import WSMembers from './WSMembers'
 import {connect} from 'react-redux'
 import { css, jsx } from '@emotion/core'
 /**@jsx jsx */
@@ -32,6 +34,14 @@ const AdminSettings = (props) => {
             return(
                 <div>
                 <h3><b>{`Your Workspace Code is: ${props.ws.code}`}</b></h3>
+                <div style={{maxHeight: '70%', overflowY: 'scroll',}}>
+                    <h4><b>Blacklisted Words</b></h4>
+                    <WordBlacklist />
+                </div>
+                <div>
+                    <h4><b>Workspace Members</b></h4>
+                    <WSMembers />
+                </div>
             </div>
             )
           case 1:

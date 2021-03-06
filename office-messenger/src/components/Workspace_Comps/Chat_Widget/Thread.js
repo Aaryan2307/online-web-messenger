@@ -82,11 +82,18 @@ const Thread = (props) => {
                             setAnchorEl(null)
                         }}
                         >
-                <MenuItem onClick={() => {
+                {!props.isNotif ? <MenuItem onClick={() => {
                     //sets replying which affects widget component
                     props.replying(props)
                     setAnchorEl(null)
                 }}>Reply</MenuItem>
+                    :
+                    <MenuItem onClick = {() => {
+                        props.setCurrentConvo(props.convoFrom)
+                        props.setWindow('chat')
+                    }}>
+                    Go To Conversation
+                    </MenuItem>}
                 {//user can only delete if it is their message
                 props.sender === props.user.user_id ? <MenuItem onClick={() => {
                     setAnchorEl(null)
