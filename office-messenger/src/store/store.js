@@ -48,20 +48,28 @@ const workspace = (state = null, action) => {
 const notifications = (state = {notifs: [], on: true, buffer: []}, action) => {
     switch(action.type){
         case 'ADD_NOTIF':
+            //initialising notifs to show and background buffer
             let updated_notifs = [...state.notifs]
             const incoming_notif = {...action.message}
             let buffer_notifs = [...state.buffer]
+            //always append the notif to the buffer in case notifs are toggled off
             buffer_notifs.unshift(incoming_notif)
             if(state.on){
+                //if they arent toggled off also update the notifs to show
                 updated_notifs.unshift(incoming_notif)
             }
+            //return this in the deconstruvted state
             return{
                 ...state,
                 notifs: updated_notifs,
                 buffer: buffer_notifs
             }
         case 'DELETE_NOTIFS':
+            //this is a case where the respective chat is opened so these notifs are now "read" and should be deleted
+            //from global store
             let filtered_notifs = []
+            //if notifs turned on then we only alter the notifs to show
+            //if not then we alter the buffer
             if(state.on){
                 filtered_notifs = [...state.notifs]
             }
@@ -69,7 +77,9 @@ const notifications = (state = {notifs: [], on: true, buffer: []}, action) => {
                 filtered_notifs = [...state.buffer]
             }
             if(filtered_notifs.length){
+                //if there are actually notifications to delete then yo filter them out
                 filtered_notifs = filtered_notifs.filter((notif) => {
+                    //filter through conversation type and the id of the group/dm
                     return (notif.recipient.type != action.convo.type ||
                     (action.convo.type == 'group' ? (notif.recipient.to != action.convo.id) : (notif.recipient.from != action.convo.id)))
     
@@ -82,9 +92,29 @@ const notifications = (state = {notifs: [], on: true, buffer: []}, action) => {
                 notifs: state.on ? filtered_notifs : [...state.notifs],
                 buffer: filtered_notifs
             }
+        case 'REMOVE_NOTIF':
+            //this use case is for actively deleting a notification if the sender deletes that unread message
+            let updated_deleted_notifs = [...state.notifs]
+            let buffer_delete_notifs = [...state.buffer]
+            //the logic is in a similar vein to DELETE_MESSAGE in the chat reducer
+            const notif_to_remove = {...action.message}
+            //finding remove index and splicing accordingly from buffer as well
+            const notif_index = updated_deleted_notifs.findIndex(n => n.message.message_id == notif_to_remove.message.message_id)
+            const notif_index_buffer = buffer_delete_notifs.findIndex(n => n.message.message_id == notif_to_remove.message.message_id)
+            buffer_delete_notifs.splice(notif_index_buffer, 1)
+            if(state.on){
+                updated_deleted_notifs.splice(notif_index, 1)
+            }
+            return{
+                ...state,
+                notifs: updated_deleted_notifs,
+                buffer: buffer_delete_notifs,
+            }
         case 'TOGGLE_NOTIF':
+            //switches update from actual to buffer when this is invoked
             let buffer_update = [...state.buffer]
             if(!state.on == true){
+                //we update the notifs to show from the buffer if we are turning on notifs
                 return{
                     ...state,
                     notifs: buffer_update,
@@ -92,6 +122,7 @@ const notifications = (state = {notifs: [], on: true, buffer: []}, action) => {
                     on: !state.on
                 }
             }
+            //otherwise we clear notifs to show and only update buffer until re-toggle
             buffer_update = [...state.notifs]
             return {
                 ...state,
@@ -100,6 +131,7 @@ const notifications = (state = {notifs: [], on: true, buffer: []}, action) => {
                 buffer: buffer_update
             }
         case 'CLEAR_NOTIFS':
+            //simple use case of just resetting this part of the state if user wishes to do so
             return{
                 ...state,
                 notifs: [],
