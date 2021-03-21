@@ -59,9 +59,9 @@ const checkHttps = (str) => {
     return 'https://' + str;
 };
 
+//Takes in a list of workds to check and a string
+//if any substring wihtin word is a workd in the list then there is a bad word
 const checkForBadWord = (list, word) => {
-    console.log('word', word)
-    console.log(word.includes(list[0]))
     for(let i of list){
         if(word.includes(i)){
             return true

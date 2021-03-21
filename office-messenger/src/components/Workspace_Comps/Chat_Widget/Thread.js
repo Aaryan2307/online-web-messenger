@@ -40,11 +40,11 @@ const Thread = (props) => {
 
     //in a similar style to widget, replies are taken from a Set
     //then returning the replies with their message_ids
-    const replies = Array.from(
+    const replies = !props.isNotif ? Array.from(
         new Set(props.replies.map((r) => r.message.message_id))
     ).map((id) => {
         return props.replies.find((r) => r.message.message_id === id);
-    });
+    }) : null;
 
     //same callback for menu component
     const personalHandler = (e) => {
@@ -82,7 +82,8 @@ const Thread = (props) => {
                             setAnchorEl(null)
                         }}
                         >
-                {!props.isNotif ? <MenuItem onClick={() => {
+                {//if this is not a notif thread then you can reply else they go to the notif conversation
+                !props.isNotif ? <MenuItem onClick={() => {
                     //sets replying which affects widget component
                     props.replying(props)
                     setAnchorEl(null)
@@ -116,7 +117,8 @@ const Thread = (props) => {
                 }}>Delete Thread</MenuItem> : null}
                 </Menu>
             </Box>
-            {replies?.length !== 0 ? (
+            {//if the message isnt a notification then you can reply
+            (replies?.length !== 0 && !props.isNotif) ? (
                 <Box
                     className={classes.replies}
                     alignSelf="flex-end"
@@ -152,10 +154,13 @@ const Thread = (props) => {
                                 Hide Replies
                             </Button>
                             {
+                                !props.isNotif ?
                                 replies.map((r) => {
                                     console.log('render', r)
                                     return <ChatMessage {...r.message} user_display_name={r.recipient.from == props.user.user_id ? 'You' : r.recipient.sender_display} key={r.message.message_id} />;
                                 })
+                                :
+                                null
                             }
                         </>
                     )}

@@ -54,6 +54,7 @@ const Workspace = (props) => {
         //same for deleting a message
         'delete-message': (response) => {
             props.deleteMessage(response)
+            props.deleteNotif(response)
         },
         //what happens if someone is now online?
         'online-status': (statusMessage) => {
@@ -595,6 +596,12 @@ const mapDispatchToProps = (dispatch) => {
         addNotif: (message) => {
             dispatch({
                 type: 'ADD_NOTIF',
+                message
+            })
+        },
+        deleteNotif: (message) => {
+            dispatch({
+                type: 'REMOVE_NOTIF',
                 message
             })
         },

@@ -15,12 +15,15 @@ const getStyle = (props) => {
 }
 
 const NotifCentre = (props) => {
-    console.log('notificaitons to show', props.notifs)
+    //console.log('notificaitons to show', props.notifs)
 
+    //similar to widget.js, we are getting thestate reducer and mapping it to a constant
     const notifMessages = useSelector((state) => state.notifications.notifs);
 
+    //for searching for notifications
     const[displaySearch, setDisplaySearch] = useState('')
 
+    //settings updated notifs from global store
     const messages = Array.from(
         new Set(notifMessages.map((r) => r.message.message_id))
     ).map((id) => {
@@ -28,15 +31,20 @@ const NotifCentre = (props) => {
         return notifMessages.find((r) => r.message.message_id === id);
     });
 
+    //input a uuid
+    //returns string that is group name given the group id
     const findGroupName = (id) => {
          return props.groups.find(g => g.group_id == id).name
     }
 
     console.log('msgs', messages)
 
+    //filtering out notifications based on the displaySearch hook
     let filteredNotifs = messages.filter((message) => {
         let groupName = ''
+        //if its a group message you can filter based on both sender and group name
         if(message.recipient.type == 'group'){
+            //set the found group name
             groupName = findGroupName(message.recipient.to)
             console.log('gname', groupName)
         }
@@ -44,11 +52,12 @@ const NotifCentre = (props) => {
         if(displaySearch == ''){
             return message
         }
+        //essentially checking for either a group name search from the messages, or the sender display from a group or dm
         if(groupName.toLowerCase().includes(displaySearch.toLowerCase()) || message.recipient.sender_display.toLowerCase().includes(displaySearch.toLowerCase())){
             return message
         }
     })
-
+    //jsx to return on frontend
     return(
         <div style={{padding: 100, marginLeft: 350,}}>
         <Box css={getStyle(props)}
@@ -77,15 +86,14 @@ const NotifCentre = (props) => {
              />
             {messages
                     ? filteredNotifs.map((r) => {
-                        //decides what the display name should be for sender
                           console.log('to render', r);
-                          let display = ''
-                          //console.log(props.users.find(user => user.user_id == r.recipient.to))
                           return (
                             //This is returning the mapped message in the form of a Thread
                             //respective properties passed in to use
                             <React.Fragment>
                             <Thread
+                            //similar to threads mapped in widget, but prop is passed in to flag that this is a notif message
+                            //called isNotif
                                 {...r.message}
                                 sender={r.recipient.from}
                                 threadToShow={r}
@@ -109,6 +117,7 @@ const NotifCentre = (props) => {
     )
 }
 
+//boilerplate redux functions again
 const mapStateToProps = (state) => {
     return{
         ws: state.workspace,
